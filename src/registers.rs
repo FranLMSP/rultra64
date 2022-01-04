@@ -1,77 +1,127 @@
-pub struct Register<T: PartialOrd + Copy>(T);
+pub trait Register<T: PartialOrd + Copy> {
+    fn get(&self) -> T;
+    fn set(&mut self, val: T);
+}
+
+#[derive(Copy, Clone)]
+pub struct Fixed<T>(T);
+impl<T: PartialOrd + Copy> Register<T> for Fixed<T> {
+    fn get(&self) -> T {self.0}
+    fn set(&mut self, _: T) {}
+}
+
+#[derive(Copy, Clone)]
+pub struct Generic<T>(T);
+impl<T: PartialOrd + Copy> Register<T> for Generic<T> {
+    fn get(&self) -> T {self.0}
+    fn set(&mut self, val: T) {self.0 = val}
+}
+
+pub const CPU_REGISTER_NAMES: [&'static str; 32] = [
+    "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2",
+    "t3",   "t4", "t5", "t6", "t7", "s0", "s1", "s2", "s3", "s4", "s5",
+    "s6",   "s7", "t8", "t9", "k0", "k1", "gp", "sp", "s8", "ra"
+];
 
 pub struct CPURegisters {
-    zero: Register<u64>,
-    at: Register<u64>,
-    v0: Register<u64>,
-    v1: Register<u64>,
-    a0: Register<u64>,
-    a1: Register<u64>,
-    a2: Register<u64>,
-    a3: Register<u64>,
-    t0: Register<u64>,
-    t1: Register<u64>,
-    t2: Register<u64>,
-    t3: Register<u64>,
-    t4: Register<u64>,
-    t5: Register<u64>,
-    t6: Register<u64>,
-    t7: Register<u64>,
-    s0: Register<u64>,
-    s1: Register<u64>,
-    s2: Register<u64>,
-    s3: Register<u64>,
-    s4: Register<u64>,
-    s5: Register<u64>,
-    s6: Register<u64>,
-    s7: Register<u64>,
-    t8: Register<u64>,
-    t9: Register<u64>,
-    k0: Register<u64>,
-    k1: Register<u64>,
-    gp: Register<u64>,
-    sp: Register<u64>,
-    s8: Register<u64>,
-    ra: Register<u64>,
-
-    program_counter: Register<u64>,
+    registers: [Box<dyn Register<i64>>; 32],
+    program_counter: Generic<i64>,
 }
 
-pub struct COP0Registers {
-    index: Register<u32>,
-    random: Register<u32>,
-    entry_lo_0: Register<u64>,
-    entry_lo_1: Register<u64>,
-    context: Register<u64>,
-    page_mask: Register<u32>,
-    wired: Register<u32>,
-    r7: Register<u64>,
-    bad_v_addr: Register<u64>,
-    count: Register<u32>,
-    entry_hi: Register<u64>,
-    compare: Register<u32>,
-    status: Register<u32>,
-    cause: Register<u32>,
-    epc: Register<u64>,
-    prid: Register<u32>,
-    config: Register<u32>,
-    ll_addr: Register<u32>,
-    watch_lo: Register<u32>,
-    watch_hi: Register<u32>,
-    x_context: Register<u64>,
-    r21: Register<u64>,
-    r22: Register<u64>,
-    r23: Register<u64>,
-    r24: Register<u64>,
-    r25: Register<u64>,
-    parity_error: Register<u32>,
-    cache_error: Register<u32>,
-    tag_lo: Register<u32>,
-    tag_hi: Register<u32>,
-    error_epc: Register<u64>,
-    r31: Register<u64>,
+impl CPURegisters {
+    pub fn new() -> Self {
+        Self {
+            registers: [
+                Box::new(Fixed(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+                Box::new(Generic(0_i64)),
+            ],
+            program_counter: Generic(0_i64),
+        }
+    }
+
+    pub fn get_by_number(&self, index: usize) -> i64 {
+        if index > 31 {
+            unreachable!("Register number {} not valid", index);
+        }
+        self.registers[index].get()
+    }
+
+    pub fn get_by_name(&self, name: &'static str) -> i64 {
+        let index = CPU_REGISTER_NAMES.iter().position(|v| *v == name).unwrap();
+        self.registers[index].get()
+    }
+
+    pub fn get_program_counter(&self) -> i64 {
+        self.program_counter.get()
+    }
+
+    pub fn set_by_number(&mut self, index: usize, val: i64) {
+        if index > 31 {
+            unreachable!("Register number {} not valid", index);
+        }
+        self.registers[index].set(val);
+    }
+
+    pub fn set_by_name(&mut self, name: &'static str, val: i64) {
+        let index = CPU_REGISTER_NAMES.iter().position(|v| *v == name).unwrap();
+        self.registers[index].set(val);
+    }
+
+    pub fn set_program_counter(&mut self, val: i64) {
+        self.program_counter.set(val);
+    }
 }
 
-pub struct COP1Registers {
-    registers: [Register<f32>; 32],
+#[cfg(test)]
+mod cpu_registers_tests {
+    use super::*;
+
+    #[test]
+    fn test_set_by_number() {
+        let mut registers = CPURegisters::new();
+        registers.set_by_number(0, 20);
+        assert_eq!(registers.get_by_number(0), 0);
+        registers.set_by_number(5, 20);
+        assert_eq!(registers.get_by_number(5), 20);
+    }
+
+    #[test]
+    fn test_set_by_name() {
+        let mut registers = CPURegisters::new();
+        registers.set_by_name("zero", 20);
+        assert_eq!(registers.get_by_name("zero"), 0);
+        registers.set_by_name("a0", 20);
+        assert_eq!(registers.get_by_name("a0"), 20);
+        assert_eq!(registers.get_by_number(4), 20);
+    }
 }
