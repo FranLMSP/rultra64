@@ -65,7 +65,7 @@ impl CPURegisters {
                 Box::new(Generic(0_i64)),
                 Box::new(Generic(0_i64)),
             ],
-            program_counter: Generic(0_i64),
+            program_counter: Generic(0xBFC00000),
         }
     }
 
