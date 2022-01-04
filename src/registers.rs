@@ -100,6 +100,10 @@ impl CPURegisters {
     pub fn set_program_counter(&mut self, val: i64) {
         self.program_counter.set(val);
     }
+
+    pub fn increment_program_counter(&mut self, val: i64) {
+        self.program_counter.set(self.program_counter.get().wrapping_add(val));
+    }
 }
 
 #[cfg(test)]
