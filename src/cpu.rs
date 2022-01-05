@@ -20,6 +20,12 @@ pub fn params_rs_rt(opcode: u32) -> (usize, usize) {
     (rt as usize, rs as usize)
 }
 
+pub fn params_rt_immediate(opcode: u32) -> (usize, i16) {
+    let rt = (opcode >> 16) & 0b11111;
+    let immediate = (opcode & 0xFFFF) as i16;
+    (rt as usize, immediate)
+}
+
 pub struct CPU {
     registers: CPURegisters,
 }
@@ -207,6 +213,11 @@ impl CPU {
             0b0010_11 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 self.sltiu(rt, rs, immediate);
+            },
+            // LUI
+            0b0011_11 => {
+                let (rt, immediate) = params_rt_immediate(opcode);
+                self.lui(rt, immediate);
             },
             _ => unimplemented!(),
         }
@@ -457,6 +468,12 @@ impl CPU {
         let immediate = (immediate as u16) as u64;
         let result = s < immediate;
         self.registers.set_by_number(rt, if result {1} else {0});
+    }
+
+    pub fn lui(&mut self, rt: usize, immediate: i16) {
+        let shift = ((immediate as u16) as u32) << 16;
+        let result = (shift as i32) as i64;
+        self.registers.set_by_number(rt, result);
     }
 }
 
@@ -816,5 +833,13 @@ mod cpu_instructions_tests {
         cpu.registers.set_by_number(reg_s, 123);
         cpu.sltiu(reg_t, reg_s, 321);
         assert_eq!(cpu.registers.get_by_number(reg_t), 1);
+    }
+
+    #[test]
+    fn test_lui() {
+        let mut cpu = CPU::new();
+        let reg_t = 20;
+        cpu.lui(reg_t, -10);
+        assert_eq!(cpu.registers.get_by_number(reg_t), -655360);
     }
 }
