@@ -71,6 +71,19 @@ impl CPU {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         let _ = self.sub(rd, rs, rt);
                     },
+                    // DSUB
+                    0b000_0010_1110 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        let res = self.dsub(rd, rs, rt);
+                        if let Err(_) = res {
+                            todo!("Throw exception for sub overflow DSUB");
+                        }
+                    },
+                    // DSUBU
+                    0b000_0010_1111 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        let _ = self.dsub(rd, rs, rt);
+                    },
                     // AND
                     0b000_0010_0100 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
@@ -175,6 +188,18 @@ impl CPU {
         let s = self.registers.get_by_number(rs) as i32;
         let t = self.registers.get_by_number(rt) as i32;
         let result = s.wrapping_sub(t) as i64;
+        let will_overflow = s.checked_sub(t);
+        self.registers.set_by_number(rd, result);
+        match will_overflow {
+            Some(_) => Ok(result),
+            None => Err(result),
+        }
+    }
+
+    pub fn dsub(&mut self, rd: usize, rs: usize, rt: usize) -> Result<i64, i64> {
+        let s = self.registers.get_by_number(rs);
+        let t = self.registers.get_by_number(rt);
+        let result = s.wrapping_sub(t);
         let will_overflow = s.checked_sub(t);
         self.registers.set_by_number(rd, result);
         match will_overflow {
@@ -334,6 +359,29 @@ mod cpu_instructions_tests {
         let res = cpu.sub(reg_dest, reg_s, reg_t);
         assert!(res.is_err());
         assert_eq!(cpu.registers.get_by_number(reg_dest) as i32, i32::MAX);
+    }
+
+    #[test]
+    fn test_dsub() {
+        let mut cpu = CPU::new();
+        let reg_dest = 10;
+        let reg_s = 15;
+        let reg_t = 20;
+        cpu.registers.set_by_number(reg_s, 80);
+        cpu.registers.set_by_number(reg_t, 80);
+        let _ = cpu.dsub(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 0);
+
+        cpu.registers.set_by_number(reg_s, 40);
+        cpu.registers.set_by_number(reg_t, -80);
+        let _ = cpu.dsub(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 120);
+
+        cpu.registers.set_by_number(reg_s, i64::MIN);
+        cpu.registers.set_by_number(reg_t, 1);
+        let res = cpu.dsub(reg_dest, reg_s, reg_t);
+        assert!(res.is_err());
+        assert_eq!(cpu.registers.get_by_number(reg_dest), i64::MAX);
     }
 
     #[test]
