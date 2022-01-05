@@ -57,12 +57,12 @@ impl CPU {
                     // DADDU
                     0b000_0010_1101 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        let _ = self.dadd(rd, rs, rt);
+                        self.daddu(rd, rs, rt);
                     },
                     // ADDU
                     0b000_0010_0001 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        let _ = self.add(rd, rs, rt);
+                        self.addu(rd, rs, rt);
                     },
                     // SUB
                     0b000_0010_0010 => {
@@ -75,7 +75,7 @@ impl CPU {
                     // SUBU
                     0b000_0010_0011 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        let _ = self.sub(rd, rs, rt);
+                        self.subu(rd, rs, rt);
                     },
                     // DSUB
                     0b000_0010_1110 => {
@@ -88,7 +88,7 @@ impl CPU {
                     // DSUBU
                     0b000_0010_1111 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        let _ = self.dsub(rd, rs, rt);
+                        self.dsubu(rd, rs, rt);
                     },
                     // DIV
                     0b000_0001_1010 => {
@@ -158,8 +158,8 @@ impl CPU {
                     _ => unimplemented!(),
                 };
             },
-            // DADDI | DADDIU
-            0b0110_00 | 0b0110_01 => {
+            // DADDI
+            0b0110_00 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 let res = self.daddi(rt, rs, immediate);
                 if inst == 0b0110_00 {
@@ -168,8 +168,13 @@ impl CPU {
                     }
                 }
             },
-            // ADDI | ADDIU
-            0b0010_00 | 0b0010_01 => {
+            // DADDIU
+            0b0110_01 => {
+                let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
+                self.daddiu(rt, rs, immediate);
+            },
+            // ADDI
+            0b0010_00 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 let res = self.addi(rt, rs, immediate);
                 if inst == 0b0010_00 {
@@ -177,6 +182,11 @@ impl CPU {
                         todo!("Throw exception for add overflow ADDI");
                     }
                 }
+            },
+            // ADDIU
+            0b0010_01 => {
+                let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
+                self.addiu(rt, rs, immediate);
             },
             // ANDI
             0b0011_00 => {
@@ -187,6 +197,16 @@ impl CPU {
             0b0011_01 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 self.ori(rt, rs, immediate);
+            },
+            // SLTI
+            0b0010_10 => {
+                let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
+                self.slti(rt, rs, immediate);
+            },
+            // SLTIU
+            0b0010_11 => {
+                let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
+                self.sltiu(rt, rs, immediate);
             },
             _ => unimplemented!(),
         }
@@ -204,6 +224,13 @@ impl CPU {
         }
     }
 
+    pub fn addu(&mut self, rd: usize, rs: usize, rt: usize) {
+        let s = (self.registers.get_by_number(rs) as i32) as u32;
+        let t = (self.registers.get_by_number(rt) as i32) as u32;
+        let result = s.wrapping_add(t) as u64;
+        self.registers.set_by_number(rd, result as i64);
+    }
+
     pub fn addi(&mut self, rt: usize, rs: usize, immediate: i16) -> Result<i64, i64> {
         let s = self.registers.get_by_number(rs) as i32;
         let immediate = immediate as i32;
@@ -214,6 +241,13 @@ impl CPU {
             Some(_) => Ok(result),
             None => Err(result),
         }
+    }
+
+    pub fn addiu(&mut self, rt: usize, rs: usize, immediate: i16) {
+        let s = (self.registers.get_by_number(rs) as i32) as u32;
+        let immediate = (immediate as i32) as u32;
+        let result = s.wrapping_add(immediate) as u64;
+        self.registers.set_by_number(rt, result as i64);
     }
 
     pub fn dadd(&mut self, rd: usize, rs: usize, rt: usize) -> Result<i64, i64> {
@@ -228,6 +262,13 @@ impl CPU {
         }
     }
 
+    pub fn daddu(&mut self, rd: usize, rs: usize, rt: usize) {
+        let s = self.registers.get_by_number(rs) as u64;
+        let t = self.registers.get_by_number(rt) as u64;
+        let result = s.wrapping_add(t);
+        self.registers.set_by_number(rd, result as i64);
+    }
+
     pub fn daddi(&mut self, rt: usize, rs: usize, immediate: i16) -> Result<i64, i64> {
         let s = self.registers.get_by_number(rs);
         let immediate = immediate as i64;
@@ -238,6 +279,13 @@ impl CPU {
             Some(_) => Ok(result),
             None => Err(result),
         }
+    }
+
+    pub fn daddiu(&mut self, rt: usize, rs: usize, immediate: i16) {
+        let s = self.registers.get_by_number(rs) as u64;
+        let immediate = (immediate as u16) as u64;
+        let result = s.wrapping_add(immediate);
+        self.registers.set_by_number(rt, result as i64);
     }
 
     pub fn sub(&mut self, rd: usize, rs: usize, rt: usize) -> Result<i64, i64> {
@@ -252,6 +300,13 @@ impl CPU {
         }
     }
 
+    pub fn subu(&mut self, rd: usize, rs: usize, rt: usize) {
+        let s = (self.registers.get_by_number(rs) as i32) as u32;
+        let t = (self.registers.get_by_number(rt) as i32) as u32;
+        let result = s.wrapping_sub(t) as u64;
+        self.registers.set_by_number(rd, result as i64);
+    }
+
     pub fn dsub(&mut self, rd: usize, rs: usize, rt: usize) -> Result<i64, i64> {
         let s = self.registers.get_by_number(rs);
         let t = self.registers.get_by_number(rt);
@@ -262,6 +317,13 @@ impl CPU {
             Some(_) => Ok(result),
             None => Err(result),
         }
+    }
+
+    pub fn dsubu(&mut self, rd: usize, rs: usize, rt: usize) {
+        let s = self.registers.get_by_number(rs) as u64;
+        let t = self.registers.get_by_number(rt) as u64;
+        let result = s.wrapping_sub(t);
+        self.registers.set_by_number(rd, result as i64);
     }
 
     pub fn div(&mut self, rs: usize, rt: usize) {
@@ -381,6 +443,20 @@ impl CPU {
     pub fn sltu(&mut self, rd: usize, rs: usize, rt: usize) {
         let result = (self.registers.get_by_number(rs) as u64) < (self.registers.get_by_number(rt) as u64);
         self.registers.set_by_number(rd, if result {1} else {0});
+    }
+
+    pub fn slti(&mut self, rt: usize, rs: usize, immediate: i16) {
+        let s = self.registers.get_by_number(rs);
+        let immediate = immediate as i64;
+        let result = s < immediate;
+        self.registers.set_by_number(rt, if result {1} else {0});
+    }
+
+    pub fn sltiu(&mut self, rt: usize, rs: usize, immediate: i16) {
+        let s = self.registers.get_by_number(rs) as u64;
+        let immediate = (immediate as u16) as u64;
+        let result = s < immediate;
+        self.registers.set_by_number(rt, if result {1} else {0});
     }
 }
 
@@ -711,29 +787,34 @@ mod cpu_instructions_tests {
     }
 
     #[test]
-    fn test_sltu() {
+    fn test_slti() {
         let mut cpu = CPU::new();
-        let reg_dest = 10;
-        let reg_s = 15;
         let reg_t = 20;
+        let reg_s = 15;
         cpu.registers.set_by_number(reg_s, 123);
-        cpu.registers.set_by_number(reg_t, 123);
-        cpu.sltu(reg_dest, reg_s, reg_t);
-        assert_eq!(cpu.registers.get_by_number(reg_dest), 0);
+        cpu.slti(reg_t, reg_s, 123);
+        assert_eq!(cpu.registers.get_by_number(reg_t), 0);
 
         cpu.registers.set_by_number(reg_s, 123);
-        cpu.registers.set_by_number(reg_t, 321);
-        cpu.sltu(reg_dest, reg_s, reg_t);
-        assert_eq!(cpu.registers.get_by_number(reg_dest), 1);
+        cpu.slti(reg_t, reg_s, -123);
+        assert_eq!(cpu.registers.get_by_number(reg_t), 0);
 
-        cpu.registers.set_by_number(reg_s, 321);
-        cpu.registers.set_by_number(reg_t, 123);
-        cpu.sltu(reg_dest, reg_s, reg_t);
-        assert_eq!(cpu.registers.get_by_number(reg_dest), 0);
+        cpu.registers.set_by_number(reg_s, -123);
+        cpu.slti(reg_t, reg_s, 123);
+        assert_eq!(cpu.registers.get_by_number(reg_t), 1);
+    }
 
-        cpu.registers.set_by_number(reg_s, i64::MAX);
-        cpu.registers.set_by_number(reg_t, i64::MIN);
-        cpu.sltu(reg_dest, reg_s, reg_t);
-        assert_eq!(cpu.registers.get_by_number(reg_dest), 1);
+    #[test]
+    fn test_sltiu() {
+        let mut cpu = CPU::new();
+        let reg_t = 20;
+        let reg_s = 15;
+        cpu.registers.set_by_number(reg_s, 123);
+        cpu.sltiu(reg_t, reg_s, 123);
+        assert_eq!(cpu.registers.get_by_number(reg_t), 0);
+
+        cpu.registers.set_by_number(reg_s, 123);
+        cpu.sltiu(reg_t, reg_s, 321);
+        assert_eq!(cpu.registers.get_by_number(reg_t), 1);
     }
 }
