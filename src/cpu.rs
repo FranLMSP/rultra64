@@ -25,7 +25,7 @@ impl CPU {
                         let rt = (opcode >> 16) & 0b11111;
                         let res = self.add(rd as usize, rs as usize, rt as usize);
                         if let Err(_) = res {
-                            todo!("Throw exception for add overflow ADDU");
+                            todo!("Throw exception for add overflow ADD");
                         }
                     },
                     // ADDU
@@ -42,6 +42,23 @@ impl CPU {
                         let rt = (opcode >> 16) & 0b11111;
                         self.and(rd as usize, rs as usize, rt as usize);
                     },
+                    // SUB
+                    0b000_0010_0010 => {
+                        let rd = (opcode >> 11) & 0b11111;
+                        let rs = (opcode >> 21) & 0b11111;
+                        let rt = (opcode >> 16) & 0b11111;
+                        let res = self.sub(rd as usize, rs as usize, rt as usize);
+                        if let Err(_) = res {
+                            todo!("Throw exception for sub overflow SUB");
+                        }
+                    },
+                    // SUBU
+                    0b000_0010_0011 => {
+                        let rd = (opcode >> 11) & 0b11111;
+                        let rs = (opcode >> 21) & 0b11111;
+                        let rt = (opcode >> 16) & 0b11111;
+                        let _ = self.sub(rd as usize, rs as usize, rt as usize);
+                    },
                     _ => unimplemented!(),
                 };
             },
@@ -53,7 +70,7 @@ impl CPU {
                 let res = self.addi(rt as usize, rs as usize, immediate);
                 if inst == 0b001000 {
                     if let Err(_) = res {
-                        todo!("Throw exception for add overflow ADDIU");
+                        todo!("Throw exception for add overflow ADDI");
                     }
                 }
             },
@@ -86,6 +103,18 @@ impl CPU {
         let result = s.wrapping_add(immediate) as i64;
         let will_overflow = s.checked_add(immediate);
         self.registers.set_by_number(rt, result);
+        match will_overflow {
+            Some(_) => Ok(result),
+            None => Err(result),
+        }
+    }
+
+    pub fn sub(&mut self, rd: usize, rs: usize, rt: usize) -> Result<i64, i64> {
+        let s = self.registers.get_by_number(rs) as i32;
+        let t = self.registers.get_by_number(rt) as i32;
+        let result = s.wrapping_sub(t) as i64;
+        let will_overflow = s.checked_sub(t);
+        self.registers.set_by_number(rd, result);
         match will_overflow {
             Some(_) => Ok(result),
             None => Err(result),
@@ -151,6 +180,29 @@ mod cpu_instructions_tests {
         let res = cpu.addi(reg_dest, reg_s, 1);
         assert!(res.is_err());
         assert_eq!(cpu.registers.get_by_number(reg_dest) as i32, i32::MIN);
+    }
+
+    #[test]
+    fn test_sub() {
+        let mut cpu = CPU::new();
+        let reg_dest = 10;
+        let reg_s = 15;
+        let reg_t = 20;
+        cpu.registers.set_by_number(reg_s, 80);
+        cpu.registers.set_by_number(reg_t, 80);
+        let _ = cpu.sub(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 0);
+
+        cpu.registers.set_by_number(reg_s, 40);
+        cpu.registers.set_by_number(reg_t, -80);
+        let _ = cpu.sub(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 120);
+
+        cpu.registers.set_by_number(reg_s, i32::MIN as i64);
+        cpu.registers.set_by_number(reg_t, 1);
+        let res = cpu.sub(reg_dest, reg_s, reg_t);
+        assert!(res.is_err());
+        assert_eq!(cpu.registers.get_by_number(reg_dest) as i32, i32::MAX);
     }
 
     #[test]
