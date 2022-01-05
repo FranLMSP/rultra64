@@ -90,25 +90,45 @@ impl CPU {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         let _ = self.dsub(rd, rs, rt);
                     },
-                    // DIV | DIVU
-                    0b000_0001_1010 | 0b000_0001_1011 => {
+                    // DIV
+                    0b000_0001_1010 => {
                         let (rs, rt) = params_rs_rt(opcode);
                         self.div(rs, rt);
                     },
-                    // DDIV | DDIVU
-                    0b000_0001_1110 | 0b000_0001_1111 => {
+                    // DIVU
+                    0b000_0001_1011 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.divu(rs, rt);
+                    },
+                    // DDIV
+                    0b000_0001_1110 => {
                         let (rs, rt) = params_rs_rt(opcode);
                         self.ddiv(rs, rt);
                     },
-                    // MULT | MULTU 
-                    0b000_0001_1000 | 0b000_0001_1001 => {
+                    // DDIVU
+                    0b000_0001_1111 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.ddivu(rs, rt);
+                    },
+                    // MULT
+                    0b000_0001_1000 => {
                         let (rs, rt) = params_rs_rt(opcode);
                         self.mult(rs, rt);
                     },
-                    // DMULT | DMULTU
-                    0b000_0001_1100 | 0b000_0001_1101 => {
+                    // MULTU
+                    0b000_0001_1001 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.multu(rs, rt);
+                    },
+                    // DMULT
+                    0b000_0001_1100 => {
                         let (rs, rt) = params_rs_rt(opcode);
                         self.dmult(rs, rt);
+                    },
+                    // DMULTU
+                    0b000_0001_1101 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.dmultu(rs, rt);
                     },
                     // AND
                     0b000_0010_0100 => {
@@ -252,6 +272,24 @@ impl CPU {
         self.registers.set_hi(remainder);
     }
 
+    pub fn divu(&mut self, rs: usize, rt: usize) {
+        let s = self.registers.get_by_number(rs) as u32;
+        let t = self.registers.get_by_number(rt) as u32;
+        let quotient = s.wrapping_div(t);
+        let remainder = s.wrapping_rem_euclid(t);
+        self.registers.set_lo((quotient as i32) as i64);
+        self.registers.set_hi((remainder as i32) as i64);
+    }
+
+    pub fn ddivu(&mut self, rs: usize, rt: usize) {
+        let s = self.registers.get_by_number(rs) as u64;
+        let t = self.registers.get_by_number(rt) as u64;
+        let quotient = s.wrapping_div(t);
+        let remainder = s.wrapping_rem_euclid(t);
+        self.registers.set_lo(quotient as i64);
+        self.registers.set_hi(remainder as i64);
+    }
+
     pub fn mult(&mut self, rs: usize, rt: usize) {
         let s = (self.registers.get_by_number(rs) as i32) as i64;
         let t = (self.registers.get_by_number(rt) as i32) as i64;
@@ -263,6 +301,22 @@ impl CPU {
     pub fn dmult(&mut self, rs: usize, rt: usize) {
         let s = self.registers.get_by_number(rs) as i128;
         let t = self.registers.get_by_number(rt) as i128;
+        let result = s * t;
+        self.registers.set_lo((result & 0xFFFFFFFFFFFF) as i64);
+        self.registers.set_hi((result >> 64) as i64);
+    }
+
+    pub fn multu(&mut self, rs: usize, rt: usize) {
+        let s = self.registers.get_by_number(rs) as u64;
+        let t = self.registers.get_by_number(rt) as u64;
+        let result = s * t;
+        self.registers.set_lo((result & 0x000000FFFFFF) as i64);
+        self.registers.set_hi((result >> 32) as i64);
+    }
+
+    pub fn dmultu(&mut self, rs: usize, rt: usize) {
+        let s = self.registers.get_by_number(rs) as u128;
+        let t = self.registers.get_by_number(rt) as u128;
         let result = s * t;
         self.registers.set_lo((result & 0xFFFFFFFFFFFF) as i64);
         self.registers.set_hi((result >> 64) as i64);
