@@ -100,6 +100,16 @@ impl CPU {
                         let (rs, rt) = params_rs_rt(opcode);
                         self.ddiv(rs, rt);
                     },
+                    // MULT | MULTU 
+                    0b000_0001_1000 | 0b000_0001_1001 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.mult(rs, rt);
+                    },
+                    // DMULT | DMULTU
+                    0b000_0001_1100 | 0b000_0001_1101 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.dmult(rs, rt);
+                    },
                     // AND
                     0b000_0010_0100 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
@@ -240,6 +250,22 @@ impl CPU {
         let remainder = s.wrapping_rem_euclid(t);
         self.registers.set_lo(quotient);
         self.registers.set_hi(remainder);
+    }
+
+    pub fn mult(&mut self, rs: usize, rt: usize) {
+        let s = (self.registers.get_by_number(rs) as i32) as i64;
+        let t = (self.registers.get_by_number(rt) as i32) as i64;
+        let result = s * t;
+        self.registers.set_lo(result & 0x000000FFFFFF);
+        self.registers.set_hi(result >> 32);
+    }
+
+    pub fn dmult(&mut self, rs: usize, rt: usize) {
+        let s = self.registers.get_by_number(rs) as i128;
+        let t = self.registers.get_by_number(rt) as i128;
+        let result = s * t;
+        self.registers.set_lo((result & 0xFFFFFFFFFFFF) as i64);
+        self.registers.set_hi((result >> 64) as i64);
     }
 
     pub fn and(&mut self, rd: usize, rs: usize, rt: usize) {
@@ -452,6 +478,30 @@ mod cpu_instructions_tests {
         cpu.ddiv(reg_s, reg_t);
         assert_eq!(cpu.registers.get_lo(), 1);
         assert_eq!(cpu.registers.get_hi(), 1);
+    }
+
+    #[test]
+    fn test_mult() {
+        let mut cpu = CPU::new();
+        let reg_s = 15;
+        let reg_t = 20;
+        cpu.registers.set_by_number(reg_s, 20);
+        cpu.registers.set_by_number(reg_t, 20);
+        cpu.mult(reg_s, reg_t);
+        assert_eq!(cpu.registers.get_lo(), 400);
+        assert_eq!(cpu.registers.get_hi(), 0);
+    }
+
+    #[test]
+    fn test_dmult() {
+        let mut cpu = CPU::new();
+        let reg_s = 15;
+        let reg_t = 20;
+        cpu.registers.set_by_number(reg_s, 20);
+        cpu.registers.set_by_number(reg_t, 20);
+        cpu.dmult(reg_s, reg_t);
+        assert_eq!(cpu.registers.get_lo(), 400);
+        assert_eq!(cpu.registers.get_hi(), 0);
     }
 
     #[test]

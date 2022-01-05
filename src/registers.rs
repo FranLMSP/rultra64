@@ -29,7 +29,7 @@ pub struct CPURegisters {
     program_counter: Generic<i64>,
     hi: Generic<i64>,
     lo: Generic<i64>,
-    load_link: bool,
+    // load_link: bool,
 }
 
 impl CPURegisters {
@@ -72,7 +72,7 @@ impl CPURegisters {
             program_counter: Generic(0xBFC00000),
             hi: Generic(0_i64),
             lo: Generic(0_i64),
-            load_link: false,
+            // load_link: false,
         }
     }
 
