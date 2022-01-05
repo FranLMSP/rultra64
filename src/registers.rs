@@ -18,14 +18,18 @@ impl<T: PartialOrd + Copy> Register<T> for Generic<T> {
 }
 
 pub const CPU_REGISTER_NAMES: [&'static str; 32] = [
-    "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2",
-    "t3",   "t4", "t5", "t6", "t7", "s0", "s1", "s2", "s3", "s4", "s5",
-    "s6",   "s7", "t8", "t9", "k0", "k1", "gp", "sp", "s8", "ra"
+    "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+    "t0",   "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+    "s0",   "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+    "t8",   "t9", "k0", "k1", "gp", "sp", "s8", "ra"
 ];
 
 pub struct CPURegisters {
     registers: [Box<dyn Register<i64>>; 32],
     program_counter: Generic<i64>,
+    hi: Generic<i64>,
+    lo: Generic<i64>,
+    load_link: bool,
 }
 
 impl CPURegisters {
@@ -66,6 +70,9 @@ impl CPURegisters {
                 Box::new(Generic(0_i64)),
             ],
             program_counter: Generic(0xBFC00000),
+            hi: Generic(0_i64),
+            lo: Generic(0_i64),
+            load_link: false,
         }
     }
 
@@ -103,6 +110,22 @@ impl CPURegisters {
 
     pub fn increment_program_counter(&mut self, val: i64) {
         self.program_counter.set(self.program_counter.get().wrapping_add(val));
+    }
+
+    pub fn set_hi(&mut self, val: i64) {
+        self.hi.set(val);
+    }
+
+    pub fn set_lo(&mut self, val: i64) {
+        self.lo.set(val);
+    }
+
+    pub fn get_hi(&self) -> i64 {
+        self.hi.get()
+    }
+
+    pub fn get_lo(&self) -> i64 {
+        self.lo.get()
     }
 }
 

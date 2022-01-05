@@ -14,6 +14,12 @@ pub fn params_rt_rs_immediate(opcode: u32) -> (usize, usize, i16) {
     (rt as usize, rs as usize, immediate)
 }
 
+pub fn params_rs_rt(opcode: u32) -> (usize, usize) {
+    let rs = (opcode >> 21) & 0b11111;
+    let rt = (opcode >> 11) & 0b11111;
+    (rt as usize, rs as usize)
+}
+
 pub struct CPU {
     registers: CPURegisters,
 }
@@ -83,6 +89,16 @@ impl CPU {
                     0b000_0010_1111 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         let _ = self.dsub(rd, rs, rt);
+                    },
+                    // DIV | DIVU
+                    0b000_0001_1010 | 0b000_0001_1011 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.div(rs, rt);
+                    },
+                    // DDIV | DDIVU
+                    0b000_0001_1110 | 0b000_0001_1111 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.ddiv(rs, rt);
                     },
                     // AND
                     0b000_0010_0100 => {
@@ -206,6 +222,24 @@ impl CPU {
             Some(_) => Ok(result),
             None => Err(result),
         }
+    }
+
+    pub fn div(&mut self, rs: usize, rt: usize) {
+        let s = self.registers.get_by_number(rs) as i32;
+        let t = self.registers.get_by_number(rt) as i32;
+        let quotient = s.wrapping_div(t);
+        let remainder = s.wrapping_rem_euclid(t);
+        self.registers.set_lo(quotient as i64);
+        self.registers.set_hi(remainder as i64);
+    }
+
+    pub fn ddiv(&mut self, rs: usize, rt: usize) {
+        let s = self.registers.get_by_number(rs);
+        let t = self.registers.get_by_number(rt);
+        let quotient = s.wrapping_div(t);
+        let remainder = s.wrapping_rem_euclid(t);
+        self.registers.set_lo(quotient);
+        self.registers.set_hi(remainder);
     }
 
     pub fn and(&mut self, rd: usize, rs: usize, rt: usize) {
@@ -382,6 +416,42 @@ mod cpu_instructions_tests {
         let res = cpu.dsub(reg_dest, reg_s, reg_t);
         assert!(res.is_err());
         assert_eq!(cpu.registers.get_by_number(reg_dest), i64::MAX);
+    }
+
+    #[test]
+    fn test_div() {
+        let mut cpu = CPU::new();
+        let reg_s = 15;
+        let reg_t = 20;
+        cpu.registers.set_by_number(reg_s, 80);
+        cpu.registers.set_by_number(reg_t, 80);
+        cpu.div(reg_s, reg_t);
+        assert_eq!(cpu.registers.get_lo(), 1);
+        assert_eq!(cpu.registers.get_hi(), 0);
+
+        cpu.registers.set_by_number(reg_s, 3);
+        cpu.registers.set_by_number(reg_t, 2);
+        cpu.div(reg_s, reg_t);
+        assert_eq!(cpu.registers.get_lo(), 1);
+        assert_eq!(cpu.registers.get_hi(), 1);
+    }
+
+    #[test]
+    fn test_ddiv() {
+        let mut cpu = CPU::new();
+        let reg_s = 15;
+        let reg_t = 20;
+        cpu.registers.set_by_number(reg_s, 80);
+        cpu.registers.set_by_number(reg_t, 80);
+        cpu.ddiv(reg_s, reg_t);
+        assert_eq!(cpu.registers.get_lo(), 1);
+        assert_eq!(cpu.registers.get_hi(), 0);
+
+        cpu.registers.set_by_number(reg_s, 3);
+        cpu.registers.set_by_number(reg_t, 2);
+        cpu.ddiv(reg_s, reg_t);
+        assert_eq!(cpu.registers.get_lo(), 1);
+        assert_eq!(cpu.registers.get_hi(), 1);
     }
 
     #[test]
