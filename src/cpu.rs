@@ -17,30 +17,54 @@ impl CPU {
         let inst = bytes[0] >> 2;
         match inst {
             0b000000 => {
-                let rd = (opcode >> 11) & 0b11111;
-                let rs = (opcode >> 21) & 0b11111;
-                let rt = (opcode >> 16) & 0b11111;
-                let res = self.add(rd as usize, rs as usize, rt as usize);
-                // ADDU
-                if (opcode & 0b11111111111) == 0b00000100000 {
-                    if let Err(_) = res {
-                        todo!("Throw exception for add overflow ADDU");
-                    }
-                }
+                match opcode & 0b111_1111_1111 {
+                    // ADD
+                    0b000_0010_0000 => {
+                        let rd = (opcode >> 11) & 0b11111;
+                        let rs = (opcode >> 21) & 0b11111;
+                        let rt = (opcode >> 16) & 0b11111;
+                        let res = self.add(rd as usize, rs as usize, rt as usize);
+                        if let Err(_) = res {
+                            todo!("Throw exception for add overflow ADDU");
+                        }
+                    },
+                    // ADDU
+                    0b000_0010_0001 => {
+                        let rd = (opcode >> 11) & 0b11111;
+                        let rs = (opcode >> 21) & 0b11111;
+                        let rt = (opcode >> 16) & 0b11111;
+                        let _ = self.add(rd as usize, rs as usize, rt as usize);
+                    },
+                    // AND
+                    0b000_0010_0100 => {
+                        let rd = (opcode >> 11) & 0b11111;
+                        let rs = (opcode >> 21) & 0b11111;
+                        let rt = (opcode >> 16) & 0b11111;
+                        self.and(rd as usize, rs as usize, rt as usize);
+                    },
+                    _ => unimplemented!(),
+                };
             },
+            // ADDI | ADDIU
             0b001000 | 0b001001 => {
                 let rt = (opcode >> 11) & 0b11111;
                 let rs = (opcode >> 21) & 0b11111;
                 let immediate = (opcode & 0xFFFF) as i16;
                 let res = self.addi(rt as usize, rs as usize, immediate);
-                // ADDIU
                 if inst == 0b001000 {
                     if let Err(_) = res {
                         todo!("Throw exception for add overflow ADDIU");
                     }
                 }
             },
-            _ => unreachable!(),
+        // ANDI
+        0b001100 => {
+            let rt = (opcode >> 11) & 0b11111;
+            let rs = (opcode >> 21) & 0b11111;
+            let immediate = ((opcode & 0xFFFF) as u16) as i16;
+            self.andi(rt as usize, rs as usize, immediate);
+        },
+            _ => unimplemented!(),
         }
     }
 
@@ -73,6 +97,13 @@ impl CPU {
         let t = self.registers.get_by_number(rt);
         let result = s & t;
         self.registers.set_by_number(rd, result);
+    }
+
+    pub fn andi(&mut self, rt: usize, rs: usize, immediate: i16) {
+        let s = self.registers.get_by_number(rs);
+        let immediate = immediate as i64;
+        let result = s & immediate;
+        self.registers.set_by_number(rt, result);
     }
 }
 
@@ -136,6 +167,20 @@ mod cpu_instructions_tests {
         cpu.registers.set_by_number(reg_s, 123);
         cpu.registers.set_by_number(reg_t, 321);
         cpu.and(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 65);
+    }
+
+    #[test]
+    fn test_andi() {
+        let mut cpu = CPU::new();
+        let reg_dest = 10;
+        let reg_s = 15;
+        cpu.registers.set_by_number(reg_s, 80);
+        cpu.andi(reg_dest, reg_s, 80);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 80);
+
+        cpu.registers.set_by_number(reg_s, 123);
+        cpu.andi(reg_dest, reg_s, 321);
         assert_eq!(cpu.registers.get_by_number(reg_dest), 65);
     }
 }
