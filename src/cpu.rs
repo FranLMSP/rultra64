@@ -145,6 +145,16 @@ impl CPU {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         self.nor(rd, rs, rt);
                     },
+                    // SLT
+                    0b000_0010_1010 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.slt(rd, rs, rt);
+                    },
+                    // SLTU
+                    0b000_0010_1011 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.slt(rd, rs, rt);
+                    },
                     _ => unimplemented!(),
                 };
             },
@@ -361,6 +371,16 @@ impl CPU {
     pub fn nor(&mut self, rd: usize, rs: usize, rt: usize) {
         let result = !(self.registers.get_by_number(rs) | self.registers.get_by_number(rt));
         self.registers.set_by_number(rd, result);
+    }
+
+    pub fn slt(&mut self, rd: usize, rs: usize, rt: usize) {
+        let result = self.registers.get_by_number(rs) < self.registers.get_by_number(rt);
+        self.registers.set_by_number(rd, if result {1} else {0});
+    }
+
+    pub fn sltu(&mut self, rd: usize, rs: usize, rt: usize) {
+        let result = (self.registers.get_by_number(rs) as u64) < (self.registers.get_by_number(rt) as u64);
+        self.registers.set_by_number(rd, if result {1} else {0});
     }
 }
 
@@ -666,5 +686,54 @@ mod cpu_instructions_tests {
         cpu.registers.set_by_number(reg_t, 321);
         cpu.nor(reg_dest, reg_s, reg_t);
         assert_eq!(cpu.registers.get_by_number(reg_dest), -380);
+    }
+
+    #[test]
+    fn test_slt() {
+        let mut cpu = CPU::new();
+        let reg_dest = 10;
+        let reg_s = 15;
+        let reg_t = 20;
+        cpu.registers.set_by_number(reg_s, 123);
+        cpu.registers.set_by_number(reg_t, 123);
+        cpu.slt(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 0);
+
+        cpu.registers.set_by_number(reg_s, 123);
+        cpu.registers.set_by_number(reg_t, 321);
+        cpu.slt(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 1);
+
+        cpu.registers.set_by_number(reg_s, 321);
+        cpu.registers.set_by_number(reg_t, 123);
+        cpu.slt(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 0);
+    }
+
+    #[test]
+    fn test_sltu() {
+        let mut cpu = CPU::new();
+        let reg_dest = 10;
+        let reg_s = 15;
+        let reg_t = 20;
+        cpu.registers.set_by_number(reg_s, 123);
+        cpu.registers.set_by_number(reg_t, 123);
+        cpu.sltu(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 0);
+
+        cpu.registers.set_by_number(reg_s, 123);
+        cpu.registers.set_by_number(reg_t, 321);
+        cpu.sltu(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 1);
+
+        cpu.registers.set_by_number(reg_s, 321);
+        cpu.registers.set_by_number(reg_t, 123);
+        cpu.sltu(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 0);
+
+        cpu.registers.set_by_number(reg_s, i64::MAX);
+        cpu.registers.set_by_number(reg_t, i64::MIN);
+        cpu.sltu(reg_dest, reg_s, reg_t);
+        assert_eq!(cpu.registers.get_by_number(reg_dest), 1);
     }
 }
