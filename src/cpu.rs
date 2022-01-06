@@ -168,6 +168,21 @@ impl CPU {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         self.slt(rd, rs, rt);
                     },
+                    // SLL
+                    0b000_0000_0000 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.sll(rd, rt, sa);
+                    },
+                    // SRL
+                    0b000_0000_0010 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.srl(rd, rt, sa);
+                    },
+                    // SRA
+                    0b000_0000_0011 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.sra(rd, rt, sa);
+                    },
                     _ => unimplemented!(),
                 };
             },
@@ -487,6 +502,19 @@ impl CPU {
         let t = self.registers.get_by_number(rt) as i32;
         let result = t << sa;
         self.registers.set_by_number(rd, result as i64);
+    }
+
+    pub fn srl(&mut self, rd: usize, rt: usize, sa: usize) {
+        let t = self.registers.get_by_number(rt) as i32;
+        let result = t >> sa;
+        self.registers.set_by_number(rd, result as i64);
+    }
+
+    pub fn sra(&mut self, rd: usize, rt: usize, sa: usize) {
+        let t = self.registers.get_by_number(rt) as i32;
+        let sign = (t as u32) & 0x80000000;
+        let result = ((t >> sa) as u32) & 0xEFFFFFFF;
+        self.registers.set_by_number(rd, ((result | sign) as i32) as i64);
     }
 }
 
@@ -864,5 +892,25 @@ mod cpu_instructions_tests {
         cpu.registers.set_by_number(rt, 0b111);
         cpu.sll(rd, rt, 3);
         assert_eq!(cpu.registers.get_by_number(rd), 0b111000);
+    }
+
+    #[test]
+    fn test_srl() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        cpu.registers.set_by_number(rt, 0b111000);
+        cpu.srl(rd, rt, 3);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111);
+    }
+
+    #[test]
+    fn test_sra() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        cpu.registers.set_by_number(rt, 0b111000);
+        cpu.sra(rd, rt, 3);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111);
     }
 }
