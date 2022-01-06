@@ -26,6 +26,13 @@ pub fn params_rt_immediate(opcode: u32) -> (usize, i16) {
     (rt as usize, immediate)
 }
 
+pub fn params_rd_rt_sa(opcode: u32) -> (usize, usize, usize) {
+    let rd = (opcode >> 11) & 0b11111;
+    let rt = (opcode >> 16) & 0b11111;
+    let sa = (opcode >> 6)  & 0b11111;
+    (rd as usize, rt as usize, sa as usize)
+}
+
 pub struct CPU {
     registers: CPURegisters,
 }
@@ -475,6 +482,12 @@ impl CPU {
         let result = (shift as i32) as i64;
         self.registers.set_by_number(rt, result);
     }
+
+    pub fn sll(&mut self, rd: usize, rt: usize, sa: usize) {
+        let t = self.registers.get_by_number(rt) as i32;
+        let result = t << sa;
+        self.registers.set_by_number(rd, result as i64);
+    }
 }
 
 #[cfg(test)]
@@ -841,5 +854,15 @@ mod cpu_instructions_tests {
         let reg_t = 20;
         cpu.lui(reg_t, -10);
         assert_eq!(cpu.registers.get_by_number(reg_t), -655360);
+    }
+
+    #[test]
+    fn test_sll() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        cpu.registers.set_by_number(rt, 0b111);
+        cpu.sll(rd, rt, 3);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111000);
     }
 }
