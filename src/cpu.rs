@@ -195,10 +195,60 @@ impl CPU {
                         let (rd, rt, rs) = params_rd_rt_rs(opcode);
                         self.sllv(rd, rt, rs);
                     },
-                    // SRLV
+                    // SRL
                     0b000_0000_0110 => {
                         let (rd, rt, rs) = params_rd_rt_rs(opcode);
                         self.sllv(rd, rt, rs);
+                    },
+                    // SRAV
+                    0b000_0000_0111 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.sllv(rd, rt, rs);
+                    },
+                    // DSLL
+                    0b000_0011_1000 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsll(rd, rt, sa);
+                    },
+                    // DSRL
+                    0b000_0011_1010 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsrl(rd, rt, sa);
+                    },
+                    // DSRA
+                    0b000_0011_1011 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.dsra(rd, rt, rs);
+                    },
+                    // DSLLV
+                    0b000_0001_0100 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.dsllv(rd, rt, rs);
+                    },
+                    // DSRLV
+                    0b000_0001_0110 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.dsrlv(rd, rt, rs);
+                    },
+                    // DSRAV
+                    0b000_0001_0111 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.dsrav(rd, rt, rs);
+                    },
+                    // DSLL32
+                    0b000_0011_1100 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsll32(rd, rt, sa);
+                    },
+                    // DSRL32
+                    0b000_0011_1110 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsrl32(rd, rt, sa);
+                    },
+                    // DSRA32
+                    0b000_0011_1111 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsra32(rd, rt, sa);
                     },
                     _ => unimplemented!(),
                 };
@@ -546,6 +596,70 @@ impl CPU {
         let s = (self.registers.get_by_number(rs) & 0b11111) as usize;
         let result = t >> s;
         self.registers.set_by_number(rd, result as i64);
+    }
+
+    pub fn srav(&mut self, rd: usize, rt: usize, rs: usize) {
+        let t = self.registers.get_by_number(rt);
+        let s = (self.registers.get_by_number(rs) & 0b11111) as usize;
+        let result = t >> s;
+        self.registers.set_by_number(rd, result as i64);
+    }
+
+    pub fn dsll(&mut self, rd: usize, rt: usize, sa: usize) {
+        let t = self.registers.get_by_number(rt);
+        let result = t << sa;
+        self.registers.set_by_number(rd, result);
+    }
+
+    pub fn dsrl(&mut self, rd: usize, rt: usize, sa: usize) {
+        let t = self.registers.get_by_number(rt);
+        let result = t >> sa;
+        self.registers.set_by_number(rd, result);
+    }
+
+    pub fn dsra(&mut self, rd: usize, rt: usize, sa: usize) {
+        let t = self.registers.get_by_number(rt);
+        let result = t >> sa;
+        self.registers.set_by_number(rd, result);
+    }
+
+    pub fn dsllv(&mut self, rd: usize, rt: usize, rs: usize) {
+        let t = self.registers.get_by_number(rt);
+        let s = (self.registers.get_by_number(rs) & 0b111111) as usize;
+        let result = t << s;
+        self.registers.set_by_number(rd, result);
+    }
+
+    pub fn dsrlv(&mut self, rd: usize, rt: usize, rs: usize) {
+        let t = self.registers.get_by_number(rt);
+        let s = (self.registers.get_by_number(rs) & 0b111111) as usize;
+        let result = t >> s;
+        self.registers.set_by_number(rd, result);
+    }
+
+    pub fn dsrav(&mut self, rd: usize, rt: usize, rs: usize) {
+        let t = self.registers.get_by_number(rt);
+        let s = (self.registers.get_by_number(rs) & 0b111111) as usize;
+        let result = t >> s;
+        self.registers.set_by_number(rd, result);
+    }
+
+    pub fn dsll32(&mut self, rd: usize, rt: usize, sa: usize) {
+        let t = self.registers.get_by_number(rt);
+        let result = t << (32 + sa);
+        self.registers.set_by_number(rd, result);
+    }
+
+    pub fn dsrl32(&mut self, rd: usize, rt: usize, sa: usize) {
+        let t = self.registers.get_by_number(rt);
+        let result = t >> (32 + sa);
+        self.registers.set_by_number(rd, result);
+    }
+
+    pub fn dsra32(&mut self, rd: usize, rt: usize, sa: usize) {
+        let t = self.registers.get_by_number(rt);
+        let result = t >> (32 + sa);
+        self.registers.set_by_number(rd, result);
     }
 }
 
@@ -967,5 +1081,113 @@ mod cpu_instructions_tests {
         cpu.registers.set_by_number(rs, 0b11);
         cpu.srlv(rd, rt, rs);
         assert_eq!(cpu.registers.get_by_number(rd), 0b111);
+    }
+
+    #[test]
+    fn test_srav() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        let rs = 25;
+        cpu.registers.set_by_number(rt, 0b111000);
+        cpu.registers.set_by_number(rs, 0b11);
+        cpu.srav(rd, rt, rs);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111);
+    }
+
+    #[test]
+    fn test_dsll() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        cpu.registers.set_by_number(rt, 0b111);
+        cpu.dsll(rd, rt, 3);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111000);
+    }
+
+    #[test]
+    fn test_dsrl() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        cpu.registers.set_by_number(rt, 0b111000);
+        cpu.dsrl(rd, rt, 3);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111);
+    }
+
+    #[test]
+    fn test_dsra() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        cpu.registers.set_by_number(rt, 0b111000);
+        cpu.dsra(rd, rt, 3);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111);
+    }
+
+    #[test]
+    fn test_dsllv() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        let rs = 25;
+        cpu.registers.set_by_number(rt, 0b111);
+        cpu.registers.set_by_number(rs, 0b11);
+        cpu.dsllv(rd, rt, rs);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111000);
+    }
+
+    #[test]
+    fn test_dsrlv() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        let rs = 25;
+        cpu.registers.set_by_number(rt, 0b111000);
+        cpu.registers.set_by_number(rs, 0b11);
+        cpu.dsrlv(rd, rt, rs);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111);
+    }
+
+    #[test]
+    fn test_dsrav() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        let rs = 25;
+        cpu.registers.set_by_number(rt, 0b111000);
+        cpu.registers.set_by_number(rs, 0b11);
+        cpu.dsrav(rd, rt, rs);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111);
+    }
+
+    #[test]
+    fn test_dsll32() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        cpu.registers.set_by_number(rt, 0b1);
+        cpu.dsll32(rd, rt, 2);
+        assert_eq!(cpu.registers.get_by_number(rd), 0x400000000);
+    }
+
+    #[test]
+    fn test_dsrl32() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        cpu.registers.set_by_number(rt, 0x400000000);
+        cpu.dsrl32(rd, rt, 2);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b1);
+    }
+
+    #[test]
+    fn test_dsra32() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        cpu.registers.set_by_number(rt, 0x400000000);
+        cpu.dsra32(rd, rt, 2);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b1);
     }
 }
