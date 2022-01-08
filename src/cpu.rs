@@ -7,6 +7,13 @@ pub fn params_rd_rs_rt(opcode: u32) -> (usize, usize, usize) {
     (rd as usize, rs as usize, rt as usize)
 }
 
+pub fn params_rd_rt_rs(opcode: u32) -> (usize, usize, usize) {
+    let rd = (opcode >> 11) & 0b11111;
+    let rt = (opcode >> 16) & 0b11111;
+    let rs = (opcode >> 21) & 0b11111;
+    (rd as usize, rt as usize, rs as usize)
+}
+
 pub fn params_rt_rs_immediate(opcode: u32) -> (usize, usize, i16) {
     let rt = (opcode >> 11) & 0b11111;
     let rs = (opcode >> 21) & 0b11111;
@@ -182,6 +189,16 @@ impl CPU {
                     0b000_0000_0011 => {
                         let (rd, rt, sa) = params_rd_rt_sa(opcode);
                         self.sra(rd, rt, sa);
+                    },
+                    // SLLV
+                    0b000_0000_0100 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.sllv(rd, rt, rs);
+                    },
+                    // SRLV
+                    0b000_0000_0110 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.sllv(rd, rt, rs);
                     },
                     _ => unimplemented!(),
                 };
@@ -515,6 +532,20 @@ impl CPU {
         let sign = (t as u32) & 0x80000000;
         let result = ((t >> sa) as u32) & 0xEFFFFFFF;
         self.registers.set_by_number(rd, ((result | sign) as i32) as i64);
+    }
+
+    pub fn sllv(&mut self, rd: usize, rt: usize, rs: usize) {
+        let t = self.registers.get_by_number(rt);
+        let s = (self.registers.get_by_number(rs) & 0b11111) as usize;
+        let result = t << s;
+        self.registers.set_by_number(rd, result as i64);
+    }
+
+    pub fn srlv(&mut self, rd: usize, rt: usize, rs: usize) {
+        let t = self.registers.get_by_number(rt);
+        let s = (self.registers.get_by_number(rs) & 0b11111) as usize;
+        let result = t >> s;
+        self.registers.set_by_number(rd, result as i64);
     }
 }
 
@@ -911,6 +942,30 @@ mod cpu_instructions_tests {
         let rt = 20;
         cpu.registers.set_by_number(rt, 0b111000);
         cpu.sra(rd, rt, 3);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111);
+    }
+
+    #[test]
+    fn test_sllv() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        let rs = 25;
+        cpu.registers.set_by_number(rt, 0b111);
+        cpu.registers.set_by_number(rs, 0b11);
+        cpu.sllv(rd, rt, rs);
+        assert_eq!(cpu.registers.get_by_number(rd), 0b111000);
+    }
+
+    #[test]
+    fn test_srlv() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        let rt = 20;
+        let rs = 25;
+        cpu.registers.set_by_number(rt, 0b111000);
+        cpu.registers.set_by_number(rs, 0b11);
+        cpu.srlv(rd, rt, rs);
         assert_eq!(cpu.registers.get_by_number(rd), 0b111);
     }
 }
