@@ -40,6 +40,14 @@ pub fn params_rd_rt_sa(opcode: u32) -> (usize, usize, usize) {
     (rd as usize, rt as usize, sa as usize)
 }
 
+pub fn params_rd(opcode: u32) -> usize {
+    return ((opcode >> 11) & 0b11111) as usize;
+}
+
+pub fn params_rs(opcode: u32) -> usize {
+    return ((opcode >> 21) & 0b11111) as usize;
+}
+
 pub struct CPU {
     registers: CPURegisters,
 }
@@ -250,6 +258,14 @@ impl CPU {
                         let (rd, rt, sa) = params_rd_rt_sa(opcode);
                         self.dsra32(rd, rt, sa);
                     },
+                    // MFHI
+                    0b000_0001_0000 => self.mfhi(params_rd(opcode)),
+                    // MFLO
+                    0b000_0001_0010 => self.mfhi(params_rd(opcode)),
+                    // MTHI
+                    0b000_0001_0001 => self.mfhi(params_rs(opcode)),
+                    // MTLO
+                    0b000_0001_0011 => self.mfhi(params_rs(opcode)),
                     _ => unimplemented!(),
                 };
             },
@@ -660,6 +676,22 @@ impl CPU {
         let t = self.registers.get_by_number(rt);
         let result = t >> (32 + sa);
         self.registers.set_by_number(rd, result);
+    }
+
+    pub fn mfhi(&mut self, rd: usize) {
+        self.registers.set_by_number(rd, self.registers.get_hi());
+    }
+
+    pub fn mflo(&mut self, rd: usize) {
+        self.registers.set_by_number(rd, self.registers.get_lo());
+    }
+
+    pub fn mthi(&mut self, rs: usize) {
+        self.registers.set_hi(self.registers.get_by_number(rs));
+    }
+
+    pub fn mtlo(&mut self, rs: usize) {
+        self.registers.set_lo(self.registers.get_by_number(rs));
     }
 }
 
@@ -1189,5 +1221,41 @@ mod cpu_instructions_tests {
         cpu.registers.set_by_number(rt, 0x400000000);
         cpu.dsra32(rd, rt, 2);
         assert_eq!(cpu.registers.get_by_number(rd), 0b1);
+    }
+
+    #[test]
+    fn test_mfhi() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        cpu.registers.set_hi(65535);
+        cpu.mfhi(rd);
+        assert_eq!(cpu.registers.get_by_number(rd), 65535);
+    }
+
+    #[test]
+    fn test_mflo() {
+        let mut cpu = CPU::new();
+        let rd = 15;
+        cpu.registers.set_lo(65535);
+        cpu.mflo(rd);
+        assert_eq!(cpu.registers.get_by_number(rd), 65535);
+    }
+
+    #[test]
+    fn test_mthi() {
+        let mut cpu = CPU::new();
+        let rs = 15;
+        cpu.registers.set_by_number(rs, 65535);
+        cpu.mthi(rs);
+        assert_eq!(cpu.registers.get_hi(), 65535);
+    }
+
+    #[test]
+    fn test_mtlo() {
+        let mut cpu = CPU::new();
+        let rs = 15;
+        cpu.registers.set_by_number(rs, 65535);
+        cpu.mtlo(rs);
+        assert_eq!(cpu.registers.get_lo(), 65535);
     }
 }
