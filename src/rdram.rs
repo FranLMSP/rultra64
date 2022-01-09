@@ -1,5 +1,5 @@
 #[derive(Copy, Clone)]
-struct Byte {
+pub struct Byte {
     data: u16,
 }
 
@@ -13,7 +13,7 @@ impl Byte {
     }
 }
 
-struct RDRAM {
+pub struct RDRAM {
     data: [Byte; 0x400000],
 }
 

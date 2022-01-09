@@ -1,4 +1,4 @@
-use crate::registers::{CPURegisters};
+use crate::registers::{CPURegisters, CP0Registers};
 
 pub fn params_rd_rs_rt(opcode: u32) -> (usize, usize, usize) {
     let rd = (opcode >> 11) & 0b11111;
@@ -40,6 +40,12 @@ pub fn params_rd_rt_sa(opcode: u32) -> (usize, usize, usize) {
     (rd as usize, rt as usize, sa as usize)
 }
 
+pub fn params_rt_rd(opcode: u32) -> (usize, usize) {
+    let rd = (opcode >> 11) & 0b11111;
+    let rt = (opcode >> 16) & 0b11111;
+    (rt as usize, rd as usize)
+}
+
 pub fn params_rd(opcode: u32) -> usize {
     return ((opcode >> 11) & 0b11111) as usize;
 }
@@ -50,12 +56,14 @@ pub fn params_rs(opcode: u32) -> usize {
 
 pub struct CPU {
     registers: CPURegisters,
+    cp0: CP0Registers,
 }
 
 impl CPU {
     pub fn new() -> Self {
         Self {
             registers: CPURegisters::new(),
+            cp0: CP0Registers::new(),
         }
     }
 
@@ -261,11 +269,11 @@ impl CPU {
                     // MFHI
                     0b000_0001_0000 => self.mfhi(params_rd(opcode)),
                     // MFLO
-                    0b000_0001_0010 => self.mfhi(params_rd(opcode)),
+                    0b000_0001_0010 => self.mflo(params_rd(opcode)),
                     // MTHI
-                    0b000_0001_0001 => self.mfhi(params_rs(opcode)),
+                    0b000_0001_0001 => self.mthi(params_rs(opcode)),
                     // MTLO
-                    0b000_0001_0011 => self.mfhi(params_rs(opcode)),
+                    0b000_0001_0011 => self.mtlo(params_rs(opcode)),
                     _ => unimplemented!(),
                 };
             },
@@ -323,6 +331,28 @@ impl CPU {
             0b0011_11 => {
                 let (rt, immediate) = params_rt_immediate(opcode);
                 self.lui(rt, immediate);
+            },
+            0b0100_00 => {
+                let instr = (opcode >> 21) & 11;
+                match instr {
+                    0b0100_0000_100 => {
+                        let (rt, rd) = params_rt_rd(opcode);
+                        self.mtc0(rt, rd);
+                    },
+                    0b0100_0000_000 => {
+                        let (rt, rd) = params_rt_rd(opcode);
+                        self.mfc0(rt, rd);
+                    },
+                    0b0100_0000_101 => {
+                        let (rt, rd) = params_rt_rd(opcode);
+                        self.dmtc0(rt, rd);
+                    },
+                    0b0100_0000_001 => {
+                        let (rt, rd) = params_rt_rd(opcode);
+                        self.dmfc0(rt, rd);
+                    },
+                    _ => unimplemented!(),
+                };
             },
             _ => unimplemented!(),
         }
@@ -693,6 +723,34 @@ impl CPU {
     pub fn mtlo(&mut self, rs: usize) {
         self.registers.set_lo(self.registers.get_by_number(rs));
     }
+
+    pub fn mtc0(&mut self, rt: usize, rd: usize) {
+        match CP0Registers::is_32bits(rd) {
+            true => self.cp0.set_by_number_32(rd, self.registers.get_by_number(rt) as i32),
+            false => self.cp0.set_by_number_64(rd, self.registers.get_by_number(rt)),
+        };
+    }
+
+    pub fn mfc0(&mut self, rt: usize, rd: usize) {
+        match CP0Registers::is_32bits(rd) {
+            true => self.registers.set_by_number(rt, self.cp0.get_by_number_32(rd) as i64),
+            false => self.registers.set_by_number(rt, self.cp0.get_by_number_64(rd))
+        };
+    }
+
+    pub fn dmtc0(&mut self, rt: usize, rd: usize) {
+        match CP0Registers::is_32bits(rd) {
+            true => self.cp0.set_by_number_32(rd, self.registers.get_by_number(rt) as i32),
+            false => self.cp0.set_by_number_64(rd, self.registers.get_by_number(rt)),
+        };
+    }
+
+    pub fn dmfc0(&mut self, rt: usize, rd: usize) {
+        match CP0Registers::is_32bits(rd) {
+            true => self.registers.set_by_number(rt, self.cp0.get_by_number_32(rd) as i64),
+            false => self.registers.set_by_number(rt, self.cp0.get_by_number_64(rd))
+        };
+    }
 }
 
 #[cfg(test)]
@@ -1059,6 +1117,11 @@ mod cpu_instructions_tests {
         let reg_t = 20;
         cpu.lui(reg_t, -10);
         assert_eq!(cpu.registers.get_by_number(reg_t), -655360);
+
+        let mut cpu = CPU::new();
+        let rt = 15;
+        cpu.lui(rt, 0x3400);
+        assert_eq!(cpu.registers.get_by_number(rt) as i32, 0x34000000);
     }
 
     #[test]
@@ -1257,5 +1320,45 @@ mod cpu_instructions_tests {
         cpu.registers.set_by_number(rs, 65535);
         cpu.mtlo(rs);
         assert_eq!(cpu.registers.get_lo(), 65535);
+    }
+
+    #[test]
+    fn test_mtc0() {
+        let mut cpu = CPU::new();
+        let rt = 15;
+        let rd = 12;
+        cpu.registers.set_by_number(rt, 65535);
+        cpu.mtc0(rt, rd);
+        assert_eq!(cpu.cp0.get_by_number_32(rd), 65535);
+    }
+
+    #[test]
+    fn test_mfc0() {
+        let mut cpu = CPU::new();
+        let rt = 15;
+        let rd = 21;
+        cpu.cp0.set_by_number_64(rd, 65535);
+        cpu.mfc0(rt, rd);
+        assert_eq!(cpu.registers.get_by_number(rt), 65535);
+    }
+
+    #[test]
+    fn test_dmtc0() {
+        let mut cpu = CPU::new();
+        let rt = 15;
+        let rd = 12;
+        cpu.registers.set_by_number(rt, 65535);
+        cpu.dmtc0(rt, rd);
+        assert_eq!(cpu.cp0.get_by_number_32(rd), 65535);
+    }
+
+    #[test]
+    fn test_dmfc0() {
+        let mut cpu = CPU::new();
+        let rt = 15;
+        let rd = 21;
+        cpu.cp0.set_by_number_64(rd, 65535);
+        cpu.dmfc0(rt, rd);
+        assert_eq!(cpu.registers.get_by_number(rt), 65535);
     }
 }
