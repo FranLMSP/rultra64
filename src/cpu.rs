@@ -391,9 +391,21 @@ impl CPU {
                 todo!("Receive MMU parameter");
             }
             // LW
-            0b10000_11 => {
+            0b1000_11 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lw(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // LWL
+            0b1000_10 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.lwl(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // LWR
+            0b1001_10 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.lwr(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             }
             _ => unimplemented!(),
@@ -825,6 +837,37 @@ impl CPU {
         let data = mmu.read_virtual(address, 4);
         let data = ((data[0] as u32) << 24) | ((data[1] as u32) << 16) | ((data[2] as u32) << 8) | ((data[3] as u32) << 8);
         self.registers.set_by_number(rt, (data as i32) as i64)
+    }
+
+    pub fn lwl(&mut self, rt: usize, offset: i16, base: usize, mmu: &MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let bytes_to_read = (4 - (address % 4)) as usize;
+        let t = self.registers.get_by_number(rt) as u32;
+        let data = mmu.read_virtual(address, bytes_to_read);
+        let mut result: u32 = 0;
+        let mut bitmask: u32 = 0xFFFFFFFF;
+        for byte in data {
+            result = (result << 8) | (byte as u32);
+            bitmask = bitmask >> 8;
+        }
+        let left = 4 - bytes_to_read;
+        let result = ((t & bitmask) | (result << left)) as i32;
+        self.registers.set_by_number(rt, result as i64)
+    }
+
+    pub fn lwr(&mut self, rt: usize, offset: i16, base: usize, mmu: &MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let bytes_to_read = (4 - (address % 4)) as usize;
+        let t = self.registers.get_by_number(rt) as u32;
+        let data = mmu.read_virtual(address, bytes_to_read);
+        let mut result: u32 = 0;
+        let mut bitmask: u32 = 0xFFFFFFFF;
+        for byte in data {
+            result = (result << 8) | (byte as u32);
+            bitmask = bitmask << 8;
+        }
+        let result = ((t & bitmask) | result) as i32;
+        self.registers.set_by_number(rt, result as i64)
     }
 }
 
@@ -1460,5 +1503,15 @@ mod cpu_instructions_tests {
     #[test]
     fn test_lw() {
         todo!("test LW");
+    }
+
+    #[test]
+    fn test_lwl() {
+        todo!("test LWL");
+    }
+
+    #[test]
+    fn test_lwr() {
+        todo!("test LWR");
     }
 }
