@@ -1,4 +1,5 @@
 use crate::registers::{CPURegisters, CP0Registers};
+use crate::mmu::{MMU};
 
 pub fn params_rd_rs_rt(opcode: u32) -> (usize, usize, usize) {
     let rd = (opcode >> 11) & 0b11111;
@@ -31,6 +32,13 @@ pub fn params_rt_immediate(opcode: u32) -> (usize, i16) {
     let rt = (opcode >> 16) & 0b11111;
     let immediate = (opcode & 0xFFFF) as i16;
     (rt as usize, immediate)
+}
+
+pub fn params_rt_offset_base(opcode: u32) -> (usize, i16, usize) {
+    let rt = (opcode >> 16) & 0b11111;
+    let offset = (opcode & 0xFFFF) as i16;
+    let base = (opcode >> 21) & 0b11111;
+    (rt as usize, offset, base as usize)
 }
 
 pub fn params_rd_rt_sa(opcode: u32) -> (usize, usize, usize) {
@@ -335,18 +343,22 @@ impl CPU {
             0b0100_00 => {
                 let instr = (opcode >> 21) & 11;
                 match instr {
+                    // MTC0
                     0b0100_0000_100 => {
                         let (rt, rd) = params_rt_rd(opcode);
                         self.mtc0(rt, rd);
                     },
+                    // MFC0
                     0b0100_0000_000 => {
                         let (rt, rd) = params_rt_rd(opcode);
                         self.mfc0(rt, rd);
                     },
+                    // DMTC0
                     0b0100_0000_101 => {
                         let (rt, rd) = params_rt_rd(opcode);
                         self.dmtc0(rt, rd);
                     },
+                    // DMFC0
                     0b0100_0000_001 => {
                         let (rt, rd) = params_rt_rd(opcode);
                         self.dmfc0(rt, rd);
@@ -354,6 +366,36 @@ impl CPU {
                     _ => unimplemented!(),
                 };
             },
+            // LB
+            0b1000_00 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.lb(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // LBU
+            0b1001_00 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.lbu(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // LH
+            0b1000_01 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.lh(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // LHU
+            0b1001_01 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.lhu(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // LW
+            0b10000_11 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.lw(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
             _ => unimplemented!(),
         }
     }
@@ -750,6 +792,39 @@ impl CPU {
             true => self.registers.set_by_number(rt, self.cp0.get_by_number_32(rd) as i64),
             false => self.registers.set_by_number(rt, self.cp0.get_by_number_64(rd))
         };
+    }
+
+    pub fn lb(&mut self, rt: usize, offset: i16, base: usize, mmu: &MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let data = mmu.read_virtual(address, 1);
+        self.registers.set_by_number(rt, (data[0] as i8) as i64)
+    }
+
+    pub fn lbu(&mut self, rt: usize, offset: i16, base: usize, mmu: &MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let data = mmu.read_virtual(address, 1);
+        self.registers.set_by_number(rt, (data[0] as u64) as i64)
+    }
+
+    pub fn lh(&mut self, rt: usize, offset: i16, base: usize, mmu: &MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let data = mmu.read_virtual(address, 2);
+        let data = ((data[0] as u16) << 8) | (data[1] as u16);
+        self.registers.set_by_number(rt, (data as i16) as i64)
+    }
+
+    pub fn lhu(&mut self, rt: usize, offset: i16, base: usize, mmu: &MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let data = mmu.read_virtual(address, 2);
+        let data = ((data[0] as u16) << 8) | (data[1] as u16);
+        self.registers.set_by_number(rt, (data as u64) as i64)
+    }
+
+    pub fn lw(&mut self, rt: usize, offset: i16, base: usize, mmu: &MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let data = mmu.read_virtual(address, 4);
+        let data = ((data[0] as u32) << 24) | ((data[1] as u32) << 16) | ((data[2] as u32) << 8) | ((data[3] as u32) << 8);
+        self.registers.set_by_number(rt, (data as i32) as i64)
     }
 }
 
@@ -1360,5 +1435,30 @@ mod cpu_instructions_tests {
         cpu.cp0.set_by_number_64(rd, 65535);
         cpu.dmfc0(rt, rd);
         assert_eq!(cpu.registers.get_by_number(rt), 65535);
+    }
+
+    #[test]
+    fn test_lb() {
+        todo!("test LB");
+    }
+
+    #[test]
+    fn test_lbu() {
+        todo!("test LBU");
+    }
+
+    #[test]
+    fn test_lh() {
+        todo!("test LH");
+    }
+
+    #[test]
+    fn test_lhu() {
+        todo!("test LHU");
+    }
+
+    #[test]
+    fn test_lw() {
+        todo!("test LW");
     }
 }

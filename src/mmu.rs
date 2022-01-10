@@ -51,4 +51,13 @@ impl MMU {
         }
         unreachable!("Invalid virtual memory address {:08X}", address);
     }
+
+    pub fn read_virtual(&self, address: i64, bytes: usize) -> Vec<u8> {
+        let converted_address = MMU::convert(address);
+        self.read_physical(converted_address, bytes)
+    }
+
+    pub fn read_physical(&self, _address: i64, _bytes: usize) -> Vec<u8> {
+        Vec::new()
+    }
 }
