@@ -11,6 +11,14 @@ impl Byte {
     pub fn write(&mut self, data: u16) {
         self.data = data & 0x1FF;
     }
+
+    pub fn read8(&self) -> u8 {
+        self.data.to_be_bytes()[1]
+    }
+
+    pub fn write8(&mut self, data: u8) {
+        self.data = (self.data & 0x100) | (data as u16);
+    }
 }
 
 pub struct RDRAM {
