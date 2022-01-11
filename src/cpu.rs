@@ -408,6 +408,24 @@ impl CPU {
                 // self.lwr(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             }
+            // SB
+            0b1010_00 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.sb(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // SH
+            0b1010_00 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.sh(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // SW
+            0b1010_00 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.sw(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
             _ => unimplemented!(),
         }
     }
@@ -868,6 +886,22 @@ impl CPU {
         }
         let result = ((t & bitmask) | result) as i32;
         self.registers.set_by_number(rt, result as i64)
+    }
+
+    pub fn sb(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let byte = self.registers.get_by_number(rt).to_le_bytes()[0] as u8;
+        mmu.write_virtual(address, (self.registers.get_by_number(rt) as i8).to_be_bytes());
+    }
+
+    pub fn sh(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        mmu.write_virtual(address, (self.registers.get_by_number(rt) as i16).to_be_bytes());
+    }
+
+    pub fn sw(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        mmu.write_virtual(address, (self.registers.get_by_number(rt) as i32).to_be_bytes());
     }
 }
 
@@ -1513,5 +1547,30 @@ mod cpu_instructions_tests {
     #[test]
     fn test_lwr() {
         todo!("test LWR");
+    }
+
+    #[test]
+    fn test_sb() {
+        todo!("test SB");
+    }
+
+    #[test]
+    fn test_sh() {
+        todo!("test SH");
+    }
+
+    #[test]
+    fn test_sw() {
+        todo!("test sw");
+    }
+
+    #[test]
+    fn test_swl() {
+        todo!("test swl");
+    }
+
+    #[test]
+    fn test_swr() {
+        todo!("test swr");
     }
 }

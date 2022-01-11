@@ -60,4 +60,12 @@ impl MMU {
     pub fn read_physical(&self, _address: i64, _bytes: usize) -> Vec<u8> {
         Vec::new()
     }
+
+    pub fn write_virtual(&self, address: i64, data: Vec<u8>) {
+        let converted_address = MMU::convert(address);
+        self.write_physical(converted_address, data)
+    }
+
+    pub fn write_physical(&self, _address: i64, _data: Vec<u8>) {
+    }
 }
