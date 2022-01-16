@@ -415,15 +415,57 @@ impl CPU {
                 todo!("Receive MMU parameter");
             }
             // SH
-            0b1010_00 => {
+            0b1010_01 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sh(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             }
             // SW
-            0b1010_00 => {
+            0b1010_11 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sw(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // SWL
+            0b1010_10 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.swl(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // SWR
+            0b1011_00 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.swr(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // LLD
+            0b1101_00 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.lld(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // LWU
+            0b1001_11 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.lwu(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // SC
+            0b1110_00 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.sc(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            }
+            // SCD
+            0b1111_00 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.scd(rt, offset, base, mmu);
+                todo!("Receive MMU parameter");
+            
+            // SD
+            0b1111_11 => {
+                // let (rt, offset, base) = params_rt_offset_base(opcode);
+                // self.sd(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             }
             _ => unimplemented!(),
@@ -890,18 +932,91 @@ impl CPU {
 
     pub fn sb(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
         let address = self.registers.get_by_number(base) + (offset as i64);
-        let byte = self.registers.get_by_number(rt).to_le_bytes()[0] as u8;
-        mmu.write_virtual(address, (self.registers.get_by_number(rt) as i8).to_be_bytes());
+        mmu.write_virtual(address, &(self.registers.get_by_number(rt) as i8).to_be_bytes());
     }
 
     pub fn sh(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
         let address = self.registers.get_by_number(base) + (offset as i64);
-        mmu.write_virtual(address, (self.registers.get_by_number(rt) as i16).to_be_bytes());
+        mmu.write_virtual(address, &(self.registers.get_by_number(rt) as i16).to_be_bytes());
     }
 
     pub fn sw(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
         let address = self.registers.get_by_number(base) + (offset as i64);
-        mmu.write_virtual(address, (self.registers.get_by_number(rt) as i32).to_be_bytes());
+        mmu.write_virtual(address, &(self.registers.get_by_number(rt) as i32).to_be_bytes());
+    }
+
+    pub fn swl(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let bytes_shift = (address & 0x3) as usize;
+        let t = self.registers.get_by_number(rt) >> (8 * bytes_shift);
+        mmu.write_virtual(address, &(t as i32).to_be_bytes());
+    }
+
+    pub fn swr(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let bytes_shift = (address & 0x3) as usize;
+        let t = self.registers.get_by_number(rt) << (8 * bytes_shift);
+        mmu.write_virtual(address + 4, &t.to_be_bytes());
+    }
+
+    pub fn lld(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let data = mmu.read_virtual(address, 4);
+        let data = ((data[0] as u64) << 56) |
+                   ((data[1] as u64) << 48) |
+                   ((data[2] as u64) << 40) |
+                   ((data[3] as u64) << 32) |
+                   ((data[4] as u64) << 24) |
+                   ((data[5] as u64) << 16) |
+                   ((data[6] as u64) << 8) |
+                   ((data[7] as u64));
+        self.registers.set_load_link(true);
+        self.cp0.set_by_name_32("LLAddr", MMU::convert(address) as i32);
+        self.registers.set_by_number(rt, data as i64)
+    }
+
+    pub fn lwu(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let data = mmu.read_virtual(address, 4);
+        let data = ((data[0] as u32) << 24) | ((data[1] as u32) << 16) | ((data[2] as u32) << 8) | ((data[3] as u32) << 8);
+        self.registers.set_by_number(rt, (data as u64) as i64)
+    }
+
+    pub fn sc(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        if self.registers.get_load_link() {
+            let address = self.registers.get_by_number(base) + (offset as i64);
+            mmu.write_virtual(address, &(self.registers.get_by_number(rt) as i32).to_be_bytes());
+        } else {
+            self.registers.set_by_number(rt, 0);
+        }
+    }
+
+    pub fn scd(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        if self.registers.get_load_link() {
+            let address = self.registers.get_by_number(base) + (offset as i64);
+            mmu.write_virtual(address, &self.registers.get_by_number(rt).to_be_bytes());
+        } else {
+            self.registers.set_by_number(rt, 0);
+        }
+    }
+
+    pub fn sd(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        mmu.write_virtual(address, &self.registers.get_by_number(rt).to_be_bytes());
+    }
+
+    pub fn sdl(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let bytes_shift = (address & 0x3) as usize;
+        let t = self.registers.get_by_number(rt) >> (8 * bytes_shift);
+        mmu.write_virtual(address, &(t as i32).to_be_bytes());
+    }
+
+    pub fn sdr(&mut self, rt: usize, offset: i16, base: usize, mmu: &mut MMU) {
+        let address = self.registers.get_by_number(base) + (offset as i64);
+        let bytes_shift = (address & 0x3) as usize;
+        let t = self.registers.get_by_number(rt) << (8 * bytes_shift);
+        mmu.write_virtual(address + 4, &t.to_be_bytes());
     }
 }
 
@@ -1572,5 +1687,40 @@ mod cpu_instructions_tests {
     #[test]
     fn test_swr() {
         todo!("test swr");
+    }
+
+    #[test]
+    fn test_lld() {
+        todo!("test lld");
+    }
+
+    #[test]
+    fn test_lwu() {
+        todo!("test lwu");
+    }
+
+    #[test]
+    fn test_sc() {
+        todo!("test sc");
+    }
+
+    #[test]
+    fn test_scd() {
+        todo!("test scd");
+    }
+
+    #[test]
+    fn test_sd() {
+        todo!("test sd");
+    }
+
+    #[test]
+    fn test_sdl() {
+        todo!("test sdl");
+    }
+
+    #[test]
+    fn test_sdr() {
+        todo!("test sdr");
     }
 }
