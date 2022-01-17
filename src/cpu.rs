@@ -22,6 +22,19 @@ pub fn params_rt_rs_immediate(opcode: u32) -> (usize, usize, i16) {
     (rt as usize, rs as usize, immediate)
 }
 
+pub fn params_rs_rt_offset(opcode: u32) -> (usize, usize, i16) {
+    let rs = (opcode >> 21) & 0b11111;
+    let rt = (opcode >> 11) & 0b11111;
+    let offset = ((opcode & 0xFFFF) as u16) as i16;
+    (rt as usize, rs as usize, offset)
+}
+
+pub fn params_rs_offset(opcode: u32) -> (usize, i16) {
+    let rs = (opcode >> 21) & 0b11111;
+    let offset = ((opcode & 0xFFFF) as u16) as i16;
+    (rs as usize, offset)
+}
+
 pub fn params_rs_rt(opcode: u32) -> (usize, usize) {
     let rs = (opcode >> 21) & 0b11111;
     let rt = (opcode >> 11) & 0b11111;
@@ -84,6 +97,7 @@ impl CPU {
         let bytes = opcode.to_be_bytes();
         let inst = bytes[0] >> 2;
         match inst {
+            // SPECIAL
             0b0000_00 => {
                 match opcode & 0b111_1111_1111 {
                     // ADD
@@ -300,6 +314,32 @@ impl CPU {
                     _ => unimplemented!(),
                 };
             },
+            // REGIMM
+            0b0000_01 => {
+                match (opcode >> 16) & 0b11111 {
+                    // BGEZ
+                    0b00001 => {
+                        let (rs, offset) = params_rs_offset(opcode);
+                        self.bgez(rs, offset);
+                    },
+                    // BGEZAL
+                    0b10001 => {
+                        let (rs, offset) = params_rs_offset(opcode);
+                        self.bgezal(rs, offset);
+                    },
+                    // BGEZALL
+                    0b10011 => {
+                        let (rs, offset) = params_rs_offset(opcode);
+                        self.bgezall(rs, offset);
+                    },
+                    // BGEZL
+                    0b00011 => {
+                        let (rs, offset) = params_rs_offset(opcode);
+                        self.bgezl(rs, offset);
+                    },
+                    _ => unimplemented!(),
+                }
+            },
             // DADDI
             0b0110_00 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
@@ -355,6 +395,7 @@ impl CPU {
                 let (rt, immediate) = params_rt_immediate(opcode);
                 self.lui(rt, immediate);
             },
+            // COP0
             0b0100_00 => {
                 let instr = (opcode >> 21) & 11;
                 match instr {
@@ -484,16 +525,18 @@ impl CPU {
                 todo!("Receive MMU parameter");
             },
             // J
-            0b0000_10 => {
-                // let target = params_target(opcode);
-                // self.j(target);
-                todo!("Receive MMU parameter");
-            },
+            0b0000_10 => self.j(params_target(opcode)),
             // JAL
-            0b0011_10 => {
-                // let target = params_target(opcode);
-                // self.jal(target);
-                todo!("Receive MMU parameter");
+            0b0011_10 => self.jal(params_target(opcode)),
+            // BEQ
+            0b0001_00 => {
+                let (rs, rt, offset) = params_rs_rt_offset(opcode);
+                self.beq(rs, rt, offset);
+            },
+            // BEQL
+            0b0101_00 => {
+                let (rs, rt, offset) = params_rs_rt_offset(opcode);
+                self.beql(rs, rt, offset);
             },
             _ => unimplemented!(),
         }
@@ -1067,6 +1110,66 @@ impl CPU {
     pub fn jr(&mut self, rs: usize) {
         let s = self.registers.get_by_number(rs);
         self.registers.set_program_counter(s);
+    }
+
+    pub fn beq(&mut self, rs: usize, rt: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        let t = self.registers.get_by_number(rt);
+        if s == t {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        }
+    }
+
+    pub fn beql(&mut self, rs: usize, rt: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        let t = self.registers.get_by_number(rt);
+        if s == t {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        } else {
+            println!("BEQL nullify current instruction");
+        }
+    }
+
+    pub fn bgez(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        if s >= 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        }
+    }
+
+    pub fn bgezal(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        let pc = self.registers.get_program_counter();
+        self.registers.set_by_number(31, pc.wrapping_add(8));
+        if s >= 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        }
+    }
+
+    pub fn bgezall(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        let pc = self.registers.get_program_counter();
+        self.registers.set_by_number(31, pc.wrapping_add(8));
+        if s >= 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        } else {
+            println!("BGEZALL nullify current instruction");
+        }
+    }
+
+    pub fn bgezl(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        if s >= 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        } else {
+            println!("BGEZL nullify current instruction");
+        }
     }
 }
 
@@ -1810,5 +1913,105 @@ mod cpu_instructions_tests {
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.jr(rs);
         assert_eq!(cpu.registers.get_program_counter(), 0x0A00000000000000);
+    }
+
+    #[test]
+    fn test_beq() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        let rt = 15;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_by_number(rt, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.beq(rs, rt, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_by_number(rt, 0x0B00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.beq(rs, rt, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_beql() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        let rt = 15;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_by_number(rt, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.beql(rs, rt, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_by_number(rt, 0x0B00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.beql(rs, rt, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_bgez() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgez(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgez(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_bgezal() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgezal(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgezal(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+    }
+
+    #[test]
+    fn test_bgezall() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgezall(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgezall(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+    }
+
+    #[test]
+    fn test_bgezl() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgezl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgezl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
     }
 }
