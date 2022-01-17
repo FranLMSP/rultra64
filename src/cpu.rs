@@ -62,6 +62,10 @@ pub fn params_rs(opcode: u32) -> usize {
     return ((opcode >> 21) & 0b11111) as usize;
 }
 
+pub fn params_target(opcode: u32) -> i32 {
+    return ((opcode & 0x3FFFFFF) as u32) as i32;
+}
+
 pub struct CPU {
     registers: CPURegisters,
     cp0: CP0Registers,
@@ -282,6 +286,17 @@ impl CPU {
                     0b000_0001_0001 => self.mthi(params_rs(opcode)),
                     // MTLO
                     0b000_0001_0011 => self.mtlo(params_rs(opcode)),
+                    // JALR
+                    0b000_0000_1001 => {
+                        let rd = (opcode >> 10) & 0x7FF;
+                        let rs = (opcode >> 21) & 0x7FF;
+                        self.jalr(rd as usize, rs as usize);
+                    },
+                    // JR
+                    0b000_0000_1000 => {
+                        let rs = (opcode >> 21) & 0x7FF;
+                        self.jr(rs as usize);
+                    },
                     _ => unimplemented!(),
                 };
             },
@@ -371,103 +386,115 @@ impl CPU {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lb(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // LBU
             0b1001_00 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lbu(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // LH
             0b1000_01 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lh(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // LHU
             0b1001_01 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lhu(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // LW
             0b1000_11 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lw(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // LWL
             0b1000_10 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lwl(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // LWR
             0b1001_10 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lwr(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // SB
             0b1010_00 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sb(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // SH
             0b1010_01 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sh(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // SW
             0b1010_11 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sw(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // SWL
             0b1010_10 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.swl(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // SWR
             0b1011_00 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.swr(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // LLD
             0b1101_00 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lld(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // LWU
             0b1001_11 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lwu(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // SC
             0b1110_00 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sc(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
             // SCD
             0b1111_00 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.scd(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            
+            },
             // SD
             0b1111_11 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sd(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
-            }
+            },
+            // J
+            0b0000_10 => {
+                // let target = params_target(opcode);
+                // self.j(target);
+                todo!("Receive MMU parameter");
+            },
+            // JAL
+            0b0011_10 => {
+                // let target = params_target(opcode);
+                // self.jal(target);
+                todo!("Receive MMU parameter");
+            },
             _ => unimplemented!(),
         }
     }
@@ -1017,6 +1044,29 @@ impl CPU {
         let bytes_shift = (address & 0x3) as usize;
         let t = self.registers.get_by_number(rt) << (8 * bytes_shift);
         mmu.write_virtual(address + 4, &t.to_be_bytes());
+    }
+
+    pub fn j(&mut self, target: i32) {
+        let pc = self.registers.get_program_counter() as u64;
+        self.registers.set_program_counter(((pc & 0xFFFFFFFFE0000000) | ((target as u64) << 2)) as i64);
+    }
+
+    pub fn jal(&mut self, target: i32) {
+        let pc = self.registers.get_program_counter();
+        self.registers.set_by_number(31, pc.wrapping_add(8));
+        self.registers.set_program_counter((((pc as u64) & 0xFFFFFFFFE0000000) | ((target as u64) << 2)) as i64);
+    }
+
+    pub fn jalr(&mut self, rd: usize, rs: usize) {
+        let s = self.registers.get_by_number(rs);
+        let pc = self.registers.get_program_counter();
+        self.registers.set_by_number(rd, pc.wrapping_add(8));
+        self.registers.set_program_counter(s);
+    }
+
+    pub fn jr(&mut self, rs: usize) {
+        let s = self.registers.get_by_number(rs);
+        self.registers.set_program_counter(s);
     }
 }
 
@@ -1722,5 +1772,43 @@ mod cpu_instructions_tests {
     #[test]
     fn test_sdr() {
         todo!("test sdr");
+    }
+
+    #[test]
+    fn test_j() {
+        let mut cpu = CPU::new();
+        cpu.registers.set_program_counter(0xFF00000000000000_u64 as i64);
+        cpu.j(1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF00000000000004_u64 as i64);
+    }
+
+    #[test]
+    fn test_jal() {
+        let mut cpu = CPU::new();
+        cpu.registers.set_program_counter(0x0F00000000000000);
+        cpu.jal(1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x0F00000000000004);
+        assert_eq!(cpu.registers.get_by_number(31), 0x0F00000000000008);
+    }
+
+    #[test]
+    fn test_jalr() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        let rd = 15;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0x0F00000000000000);
+        cpu.jalr(rd, rs);
+        assert_eq!(cpu.registers.get_program_counter(), 0x0A00000000000000);
+        assert_eq!(cpu.registers.get_by_number(rd), 0x0F00000000000008);
+    }
+
+    #[test]
+    fn test_jr() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.jr(rs);
+        assert_eq!(cpu.registers.get_program_counter(), 0x0A00000000000000);
     }
 }
