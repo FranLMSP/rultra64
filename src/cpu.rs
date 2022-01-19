@@ -337,6 +337,26 @@ impl CPU {
                         let (rs, offset) = params_rs_offset(opcode);
                         self.bgezl(rs, offset);
                     },
+                    // BLTZ
+                    0b00000 => {
+                        let (rs, offset) = params_rs_offset(opcode);
+                        self.bltz(rs, offset);
+                    },
+                    // BLTZAL
+                    0b10000 => {
+                        let (rs, offset) = params_rs_offset(opcode);
+                        self.bltzal(rs, offset);
+                    },
+                    // BLTZALL
+                    0b10010 => {
+                        let (rs, offset) = params_rs_offset(opcode);
+                        self.bltzall(rs, offset);
+                    },
+                    // BLTZL
+                    0b00010 => {
+                        let (rs, offset) = params_rs_offset(opcode);
+                        self.bltzl(rs, offset);
+                    },
                     _ => unimplemented!(),
                 }
             },
@@ -533,10 +553,35 @@ impl CPU {
                 let (rs, rt, offset) = params_rs_rt_offset(opcode);
                 self.beq(rs, rt, offset);
             },
-            // BEQL
-            0b0101_00 => {
+            // BGTZ
+            0b0001_11 => {
+                let (rs, offset) = params_rs_offset(opcode);
+                self.bgtz(rs, offset);
+            },
+            // BGTZL
+            0b0101_11 => {
+                let (rs, offset) = params_rs_offset(opcode);
+                self.bgtzl(rs, offset);
+            },
+            // BLEZ
+            0b0001_10 => {
+                let (rs, offset) = params_rs_offset(opcode);
+                self.blez(rs, offset);
+            },
+            // BLEZL
+            0b0101_10 => {
+                let (rs, offset) = params_rs_offset(opcode);
+                self.blezl(rs, offset);
+            },
+            // BNE
+            0b0001_01 => {
                 let (rs, rt, offset) = params_rs_rt_offset(opcode);
-                self.beql(rs, rt, offset);
+                self.bne(rs, rt, offset);
+            },
+            // BNEL
+            0b0001_01 => {
+                let (rs, rt, offset) = params_rs_rt_offset(opcode);
+                self.bnel(rs, rt, offset);
             },
             _ => unimplemented!(),
         }
@@ -1169,6 +1214,102 @@ impl CPU {
             self.registers.increment_program_counter(offset);
         } else {
             println!("BGEZL nullify current instruction");
+        }
+    }
+
+    pub fn bgtz(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        if s > 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        }
+    }
+
+    pub fn bgtzl(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        if s > 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        } else {
+            println!("BGTZL nullify current instruction");
+        }
+    }
+
+    pub fn blez(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        if s <= 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        }
+    }
+
+    pub fn blezl(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        if s <= 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        } else {
+            println!("BGEZL nullify current instruction");
+        }
+    }
+
+    pub fn bltz(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        if s < 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        }
+    }
+
+    pub fn bltzal(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        let pc = self.registers.get_program_counter();
+        self.registers.set_by_number(31, pc.wrapping_add(8));
+        if s < 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        }
+    }
+
+    pub fn bltzall(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        let pc = self.registers.get_program_counter();
+        self.registers.set_by_number(31, pc.wrapping_add(8));
+        if s < 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        } else {
+            println!("BLTZALL nullify current instruction");
+        }
+    }
+
+    pub fn bltzl(&mut self, rs: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        if s < 0 {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        } else {
+            println!("BLTZL nullify current instruction");
+        }
+    }
+
+    pub fn bne(&mut self, rs: usize, rt: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        let t = self.registers.get_by_number(rt);
+        if s != t {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        }
+    }
+
+    pub fn bnel(&mut self, rs: usize, rt: usize, offset: i16) {
+        let s = self.registers.get_by_number(rs);
+        let t = self.registers.get_by_number(rt);
+        if s != t {
+            let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
+            self.registers.increment_program_counter(offset);
+        } else {
+            println!("BNEL nullify current instruction");
         }
     }
 }
@@ -2012,6 +2153,208 @@ mod cpu_instructions_tests {
         cpu.registers.set_by_number(rs, -1);
         cpu.registers.set_program_counter(0xFF);
         cpu.bgezl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_bgtz() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgtz(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgtz(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+
+        cpu.registers.set_by_number(rs, 0);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgtz(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_bgtzl() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgtzl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgtzl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+
+        cpu.registers.set_by_number(rs, 0);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bgtzl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_blez() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, 0);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.blez(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.blez(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, 1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.blez(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_blezl() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, 0);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.blezl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.blezl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, 1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.blezl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_bltz() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltz(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, 0);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltz(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+
+        cpu.registers.set_by_number(rs, 1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltz(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_bltzal() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltzal(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+
+        cpu.registers.set_by_number(rs, 0);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltzal(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+
+        cpu.registers.set_by_number(rs, 1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltzal(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+    }
+
+    #[test]
+    fn test_bltzall() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltzall(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+
+        cpu.registers.set_by_number(rs, 0);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltzall(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+
+        cpu.registers.set_by_number(rs, 1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltzall(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
+    }
+
+    #[test]
+    fn test_bltzl() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        cpu.registers.set_by_number(rs, -1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltzl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, 0);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltzl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+
+        cpu.registers.set_by_number(rs, 1);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bltzl(rs, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_bne() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        let rt = 15;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_by_number(rt, 0x0B00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bne(rs, rt, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_by_number(rt, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bne(rs, rt, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+    }
+
+    #[test]
+    fn test_bnel() {
+        let mut cpu = CPU::new();
+        let rs = 10;
+        let rt = 15;
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_by_number(rt, 0x0B00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bnel(rs, rt, 1);
+        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+
+        cpu.registers.set_by_number(rs, 0x0A00000000000000);
+        cpu.registers.set_by_number(rt, 0x0A00000000000000);
+        cpu.registers.set_program_counter(0xFF);
+        cpu.bnel(rs, rt, 1);
         assert_eq!(cpu.registers.get_program_counter(), 0xFF);
     }
 }
