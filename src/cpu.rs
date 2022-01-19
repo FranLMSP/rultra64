@@ -98,18 +98,32 @@ impl CPU {
         let inst = bytes[0] >> 2;
         match inst {
             // SPECIAL
-            0b0000_00 => {
-                match opcode & 0b111_1111_1111 {
+            0b000000 => {
+                match opcode & 0b111111 {
                     // ADD
-                    0b000_0010_0000 => {
+                    0b100000 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         let res = self.add(rd, rs, rt);
                         if let Err(_) = res {
                             todo!("Throw exception for add overflow ADD");
                         }
                     },
+                    // ADDU
+                    0b100001 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.addu(rd, rs, rt);
+                    },
+                    // AND
+                    0b100100 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.and(rd, rs, rt);
+                    },
+                    // BREAK
+                    0b001101 => {
+                        todo!("BREAK instruction");
+                    },
                     // DADD
-                    0b000_0010_1100 => {
+                    0b101100 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         let res = self.dadd(rd, rs, rt);
                         if let Err(_) = res {
@@ -117,30 +131,87 @@ impl CPU {
                         }
                     },
                     // DADDU
-                    0b000_0010_1101 => {
+                    0b101101 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         self.daddu(rd, rs, rt);
                     },
-                    // ADDU
-                    0b000_0010_0001 => {
-                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        self.addu(rd, rs, rt);
+                    // DDIV
+                    0b011110 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.ddiv(rs, rt);
                     },
-                    // SUB
-                    0b000_0010_0010 => {
-                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        let res = self.sub(rd, rs, rt);
-                        if let Err(_) = res {
-                            todo!("Throw exception for sub overflow SUB");
-                        }
+                    // DDIVU
+                    0b011111 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.ddivu(rs, rt);
                     },
-                    // SUBU
-                    0b000_0010_0011 => {
-                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        self.subu(rd, rs, rt);
+                    // DIV
+                    0b011010 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.div(rs, rt);
+                    },
+                    // DIVU
+                    0b011011 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.divu(rs, rt);
+                    },
+                    // DMULT
+                    0b011100 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.dmult(rs, rt);
+                    },
+                    // DMULTU
+                    0b011101 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.dmultu(rs, rt);
+                    },
+                    // DSLL
+                    0b111000 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsll(rd, rt, sa);
+                    },
+                    // DSLLV
+                    0b010100 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.dsllv(rd, rt, rs);
+                    },
+                    // DSLL32
+                    0b111100 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsll32(rd, rt, sa);
+                    },
+                    // DSRA
+                    0b111011 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.dsra(rd, rt, rs);
+                    },
+                    // DSRAV
+                    0b010111 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.dsrav(rd, rt, rs);
+                    },
+                    // DSRA32
+                    0b111111 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsra32(rd, rt, sa);
+                    },
+                    // DSRL
+                    0b111010 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsrl(rd, rt, sa);
+                    },
+                    // DSRLV
+                    0b010110 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.dsrlv(rd, rt, rs);
+                    },
+                    // DSRL32
+                    0b111110 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.dsrl32(rd, rt, sa);
                     },
                     // DSUB
-                    0b000_0010_1110 => {
+                    0b101110 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         let res = self.dsub(rd, rs, rt);
                         if let Err(_) = res {
@@ -148,174 +219,136 @@ impl CPU {
                         }
                     },
                     // DSUBU
-                    0b000_0010_1111 => {
+                    0b101111 => {
                         let (rd, rs, rt) = params_rd_rs_rt(opcode);
                         self.dsubu(rd, rs, rt);
                     },
-                    // DIV
-                    0b000_0001_1010 => {
-                        let (rs, rt) = params_rs_rt(opcode);
-                        self.div(rs, rt);
-                    },
-                    // DIVU
-                    0b000_0001_1011 => {
-                        let (rs, rt) = params_rs_rt(opcode);
-                        self.divu(rs, rt);
-                    },
-                    // DDIV
-                    0b000_0001_1110 => {
-                        let (rs, rt) = params_rs_rt(opcode);
-                        self.ddiv(rs, rt);
-                    },
-                    // DDIVU
-                    0b000_0001_1111 => {
-                        let (rs, rt) = params_rs_rt(opcode);
-                        self.ddivu(rs, rt);
-                    },
-                    // MULT
-                    0b000_0001_1000 => {
-                        let (rs, rt) = params_rs_rt(opcode);
-                        self.mult(rs, rt);
-                    },
-                    // MULTU
-                    0b000_0001_1001 => {
-                        let (rs, rt) = params_rs_rt(opcode);
-                        self.multu(rs, rt);
-                    },
-                    // DMULT
-                    0b000_0001_1100 => {
-                        let (rs, rt) = params_rs_rt(opcode);
-                        self.dmult(rs, rt);
-                    },
-                    // DMULTU
-                    0b000_0001_1101 => {
-                        let (rs, rt) = params_rs_rt(opcode);
-                        self.dmultu(rs, rt);
-                    },
-                    // AND
-                    0b000_0010_0100 => {
-                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        self.and(rd, rs, rt);
-                    },
-                    // OR
-                    0b000_0010_0101 => {
-                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        self.or(rd, rs, rt);
-                    },
-                    // NOR
-                    0b000_0010_0111 => {
-                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        self.nor(rd, rs, rt);
-                    },
-                    // SLT
-                    0b000_0010_1010 => {
-                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        self.slt(rd, rs, rt);
-                    },
-                    // SLTU
-                    0b000_0010_1011 => {
-                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
-                        self.slt(rd, rs, rt);
-                    },
-                    // SLL
-                    0b000_0000_0000 => {
-                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
-                        self.sll(rd, rt, sa);
-                    },
-                    // SRL
-                    0b000_0000_0010 => {
-                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
-                        self.srl(rd, rt, sa);
-                    },
-                    // SRA
-                    0b000_0000_0011 => {
-                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
-                        self.sra(rd, rt, sa);
-                    },
-                    // SLLV
-                    0b000_0000_0100 => {
-                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
-                        self.sllv(rd, rt, rs);
-                    },
-                    // SRL
-                    0b000_0000_0110 => {
-                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
-                        self.sllv(rd, rt, rs);
-                    },
-                    // SRAV
-                    0b000_0000_0111 => {
-                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
-                        self.sllv(rd, rt, rs);
-                    },
-                    // DSLL
-                    0b000_0011_1000 => {
-                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
-                        self.dsll(rd, rt, sa);
-                    },
-                    // DSRL
-                    0b000_0011_1010 => {
-                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
-                        self.dsrl(rd, rt, sa);
-                    },
-                    // DSRA
-                    0b000_0011_1011 => {
-                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
-                        self.dsra(rd, rt, rs);
-                    },
-                    // DSLLV
-                    0b000_0001_0100 => {
-                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
-                        self.dsllv(rd, rt, rs);
-                    },
-                    // DSRLV
-                    0b000_0001_0110 => {
-                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
-                        self.dsrlv(rd, rt, rs);
-                    },
-                    // DSRAV
-                    0b000_0001_0111 => {
-                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
-                        self.dsrav(rd, rt, rs);
-                    },
-                    // DSLL32
-                    0b000_0011_1100 => {
-                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
-                        self.dsll32(rd, rt, sa);
-                    },
-                    // DSRL32
-                    0b000_0011_1110 => {
-                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
-                        self.dsrl32(rd, rt, sa);
-                    },
-                    // DSRA32
-                    0b000_0011_1111 => {
-                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
-                        self.dsra32(rd, rt, sa);
-                    },
-                    // MFHI
-                    0b000_0001_0000 => self.mfhi(params_rd(opcode)),
-                    // MFLO
-                    0b000_0001_0010 => self.mflo(params_rd(opcode)),
-                    // MTHI
-                    0b000_0001_0001 => self.mthi(params_rs(opcode)),
-                    // MTLO
-                    0b000_0001_0011 => self.mtlo(params_rs(opcode)),
                     // JALR
-                    0b000_0000_1001 => {
+                    0b001001 => {
                         let rd = (opcode >> 10) & 0x7FF;
                         let rs = (opcode >> 21) & 0x7FF;
                         self.jalr(rd as usize, rs as usize);
                     },
                     // JR
-                    0b000_0000_1000 => {
+                    0b001000 => {
                         let rs = (opcode >> 21) & 0x7FF;
                         self.jr(rs as usize);
+                    },
+                    // MFHI
+                    0b010000 => self.mfhi(params_rd(opcode)),
+                    // MFLO
+                    0b010010 => self.mflo(params_rd(opcode)),
+                    // MTHI
+                    0b010001 => self.mthi(params_rs(opcode)),
+                    // MTLO
+                    0b010011 => self.mtlo(params_rs(opcode)),
+                    // MULT
+                    0b011000 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.mult(rs, rt);
+                    },
+                    // MULTU
+                    0b011001 => {
+                        let (rs, rt) = params_rs_rt(opcode);
+                        self.multu(rs, rt);
+                    },
+                    // NOR
+                    0b100111 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.nor(rd, rs, rt);
+                    },
+                    // OR
+                    0b100101 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.or(rd, rs, rt);
+                    },
+                    // SLL
+                    0b000000 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.sll(rd, rt, sa);
+                    },
+                    // SLLV
+                    0b000100 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.sllv(rd, rt, rs);
+                    },
+                    // SLT
+                    0b101010 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.slt(rd, rs, rt);
+                    },
+                    // SLTU
+                    0b101011 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.slt(rd, rs, rt);
+                    },
+                    // SRA
+                    0b000011 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.sra(rd, rt, sa);
+                    },
+                    // SRAV
+                    0b000111 => {
+                        let (rd, rt, rs) = params_rd_rt_rs(opcode);
+                        self.srav(rd, rt, rs);
+                    },
+                    // SRL
+                    0b000010 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.srl(rd, rt, sa);
+                    },
+                    // SRLV
+                    0b000110 => {
+                        let (rd, rt, sa) = params_rd_rt_sa(opcode);
+                        self.srlv(rd, rt, sa);
+                    },
+                    // SUB
+                    0b100010 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        let res = self.sub(rd, rs, rt);
+                        if let Err(_) = res {
+                            todo!("Throw exception for sub overflow SUB");
+                        }
+                    },
+                    // SUBU
+                    0b100011 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.subu(rd, rs, rt);
+                    },
+                    // SYNC
+                    0b001111 => {
+                    },
+                    // SYSCALL
+                    0b001100 => {
+                    },
+                    // TEQ
+                    0b110100 => {
+                    },
+                    // TGE
+                    0b110000 => {
+                    },
+                    // TGEU
+                    0b110001 => {
+                    },
+                    // TLT
+                    0b110010 => {
+                    },
+                    // TLTU
+                    0b110011 => {
+                    },
+                    // TNE
+                    0b110110 => {
+                    },
+                    // XOR
+                    0b100110 => {
+                        let (rd, rs, rt) = params_rd_rs_rt(opcode);
+                        self.xor(rd, rs, rt);
                     },
                     _ => unimplemented!(),
                 };
             },
             // REGIMM
-            0b0000_01 => {
+            0b000001 => {
                 match (opcode >> 16) & 0b11111 {
                     // BGEZ
                     0b00001 => {
@@ -357,11 +390,29 @@ impl CPU {
                         let (rs, offset) = params_rs_offset(opcode);
                         self.bltzl(rs, offset);
                     },
+                    // TEQI
+                    0b01100 => {
+                    },
+                    // TGEI
+                    0b01000 => {
+                    },
+                    // TGEIU
+                    0b01001 => {
+                    },
+                    // TLTI
+                    0b01010 => {
+                    },
+                    // TLTIU
+                    0b01011 => {
+                    },
+                    // TNEI
+                    0b01110 => {
+                    },
                     _ => unimplemented!(),
-                }
+                };
             },
             // DADDI
-            0b0110_00 => {
+            0b011000 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 let res = self.daddi(rt, rs, immediate);
                 if inst == 0b0110_00 {
@@ -371,12 +422,12 @@ impl CPU {
                 }
             },
             // DADDIU
-            0b0110_01 => {
+            0b011001 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 self.daddiu(rt, rs, immediate);
             },
             // ADDI
-            0b0010_00 => {
+            0b001000 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 let res = self.addi(rt, rs, immediate);
                 if inst == 0b0010_00 {
@@ -386,200 +437,218 @@ impl CPU {
                 }
             },
             // ADDIU
-            0b0010_01 => {
+            0b001001 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 self.addiu(rt, rs, immediate);
             },
             // ANDI
-            0b0011_00 => {
+            0b001100 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 self.andi(rt, rs, immediate);
             },
             // ORI
-            0b0011_01 => {
+            0b001101 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 self.ori(rt, rs, immediate);
             },
             // SLTI
-            0b0010_10 => {
+            0b001010 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 self.slti(rt, rs, immediate);
             },
             // SLTIU
-            0b0010_11 => {
+            0b001011 => {
                 let (rt, rs, immediate) = params_rt_rs_immediate(opcode);
                 self.sltiu(rt, rs, immediate);
             },
             // LUI
-            0b0011_11 => {
+            0b001111 => {
                 let (rt, immediate) = params_rt_immediate(opcode);
                 self.lui(rt, immediate);
             },
             // COP0
-            0b0100_00 => {
-                let instr = (opcode >> 21) & 11;
-                match instr {
-                    // MTC0
-                    0b0100_0000_100 => {
-                        let (rt, rd) = params_rt_rd(opcode);
-                        self.mtc0(rt, rd);
-                    },
-                    // MFC0
-                    0b0100_0000_000 => {
-                        let (rt, rd) = params_rt_rd(opcode);
-                        self.mfc0(rt, rd);
-                    },
-                    // DMTC0
-                    0b0100_0000_101 => {
-                        let (rt, rd) = params_rt_rd(opcode);
-                        self.dmtc0(rt, rd);
-                    },
+            0b010000 => {
+                match (opcode >> 21) & 0b11111 {
                     // DMFC0
-                    0b0100_0000_001 => {
+                    0b00001 => {
                         let (rt, rd) = params_rt_rd(opcode);
                         self.dmfc0(rt, rd);
                     },
-                    _ => unimplemented!(),
+                    // DMTC0
+                    0b00101 => {
+                        let (rt, rd) = params_rt_rd(opcode);
+                        self.dmtc0(rt, rd);
+                    },
+                    // MFC0
+                    0b00000 => {
+                        let (rt, rd) = params_rt_rd(opcode);
+                        self.mfc0(rt, rd);
+                    },
+                    // MTC0
+                    0b00100 => {
+                        let (rt, rd) = params_rt_rd(opcode);
+                        self.mtc0(rt, rd);
+                    },
+                    _ => {
+                        match opcode & 0b111111 {
+                            // ERET
+                            0b011000 => {
+                            },
+                            // TLBP
+                            0b001000 => {
+                            },
+                            // TLBR
+                            0b000001 => {
+                            },
+                            // TLBWI
+                            0b000010 => {
+                            },
+                            // TLBWR
+                            0b000110 => {
+                            },
+                            _ => unimplemented!(),
+                        };
+                    },
                 };
             },
             // LB
-            0b1000_00 => {
+            0b100000 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lb(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // LBU
-            0b1001_00 => {
+            0b100100 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lbu(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // LH
-            0b1000_01 => {
+            0b100001 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lh(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // LHU
-            0b1001_01 => {
+            0b100101 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lhu(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // LW
-            0b1000_11 => {
+            0b100011 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lw(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // LWL
-            0b1000_10 => {
+            0b100010 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lwl(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // LWR
-            0b1001_10 => {
+            0b100110 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lwr(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // SB
-            0b1010_00 => {
+            0b101000 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sb(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // SH
-            0b1010_01 => {
+            0b101001 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sh(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // SW
-            0b1010_11 => {
+            0b101011 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sw(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // SWL
-            0b1010_10 => {
+            0b101010 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.swl(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // SWR
-            0b1011_00 => {
+            0b101100 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.swr(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // LLD
-            0b1101_00 => {
+            0b110100 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lld(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // LWU
-            0b1001_11 => {
+            0b100111 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.lwu(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // SC
-            0b1110_00 => {
+            0b111000 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sc(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // SCD
-            0b1111_00 => {
+            0b111100 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.scd(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // SD
-            0b1111_11 => {
+            0b111111 => {
                 // let (rt, offset, base) = params_rt_offset_base(opcode);
                 // self.sd(rt, offset, base, mmu);
                 todo!("Receive MMU parameter");
             },
             // J
-            0b0000_10 => self.j(params_target(opcode)),
+            0b000010 => self.j(params_target(opcode)),
             // JAL
-            0b0011_10 => self.jal(params_target(opcode)),
+            0b001110 => self.jal(params_target(opcode)),
             // BEQ
-            0b0001_00 => {
+            0b000100 => {
                 let (rs, rt, offset) = params_rs_rt_offset(opcode);
                 self.beq(rs, rt, offset);
             },
             // BGTZ
-            0b0001_11 => {
+            0b000111 => {
                 let (rs, offset) = params_rs_offset(opcode);
                 self.bgtz(rs, offset);
             },
             // BGTZL
-            0b0101_11 => {
+            0b010111 => {
                 let (rs, offset) = params_rs_offset(opcode);
                 self.bgtzl(rs, offset);
             },
             // BLEZ
-            0b0001_10 => {
+            0b000110 => {
                 let (rs, offset) = params_rs_offset(opcode);
                 self.blez(rs, offset);
             },
             // BLEZL
-            0b0101_10 => {
+            0b010110 => {
                 let (rs, offset) = params_rs_offset(opcode);
                 self.blezl(rs, offset);
             },
             // BNE
-            0b0001_01 => {
+            0b000101 => {
                 let (rs, rt, offset) = params_rs_rt_offset(opcode);
                 self.bne(rs, rt, offset);
             },
             // BNEL
-            0b0001_01 => {
+            0b010101 => {
                 let (rs, rt, offset) = params_rs_rt_offset(opcode);
                 self.bnel(rs, rt, offset);
             },
