@@ -4,6 +4,12 @@ pub struct Byte {
 }
 
 impl Byte {
+    pub fn new() -> Self {
+        Self {
+            data: 0,
+        }
+    }
+
     pub fn read(&self) -> u16 {
         self.data & 0x1FF
     }
@@ -26,11 +32,25 @@ pub struct RDRAM {
 }
 
 impl RDRAM {
+    pub fn new() -> Self {
+        Self {
+            data: [Byte::new(); 0x400000],
+        }
+    }
+
     pub fn read(&self, address: i64) -> u16 {
         self.data[address as usize].read()
     }
 
     pub fn write(&mut self, address: i64, data: u16) {
         self.data[address as usize].write(data);
+    }
+
+    pub fn read8(&self, address: i64) -> u8 {
+        self.data[address as usize].read8()
+    }
+
+    pub fn write8(&mut self, address: i64, data: u8) {
+        self.data[address as usize].write8(data);
     }
 }

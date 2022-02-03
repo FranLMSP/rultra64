@@ -1,5 +1,7 @@
 use std::ops::RangeInclusive;
 
+use crate::rdram::RDRAM;
+
 pub const KUSEG: RangeInclusive<i64> = 0x00000000..=0x7FFFFFFF;
 pub const KSEG0: RangeInclusive<i64> = 0x80000000..=0x9FFFFFFF;
 pub const KSEG1: RangeInclusive<i64> = 0xA0000000..=0xBFFFFFFF;
@@ -34,9 +36,16 @@ pub const CARTRIDGE_DOMAIN_1_ADDRESS_3: RangeInclusive<i64> = 0x1FD00000..=0x7FF
 pub const EXTERNAL_SYSAD_DEVICE_BUS: RangeInclusive<i64>    = 0x80000000..=0xFFFFFFFF;
 
 pub struct MMU {
+    rdram: RDRAM,
 }
 
 impl MMU {
+    pub fn new() -> Self {
+        Self {
+            rdram: RDRAM::new(),
+        }
+    }
+
     pub fn convert(address: i64) -> i64 {
         if KUSEG.contains(&address) {
             return address - KUSEG.min().unwrap();
@@ -57,15 +66,111 @@ impl MMU {
         self.read_physical(converted_address, bytes)
     }
 
-    pub fn read_physical(&self, _address: i64, _bytes: usize) -> Vec<u8> {
-        Vec::new()
-    }
-
-    pub fn write_virtual(&self, address: i64, data: &[u8]) {
+    pub fn write_virtual(&mut self, address: i64, data: &[u8]) {
         let converted_address = MMU::convert(address);
         self.write_physical(converted_address, data)
     }
 
-    pub fn write_physical(&self, _address: i64, _data: &[u8]) {
+    pub fn read_physical(&self, address: i64, bytes: usize) -> Vec<u8> {
+        let mut data = Vec::new();
+        for _ in 0..bytes {
+            data.push(self.read_physical_byte(address));
+        }
+        data
+    }
+
+    pub fn write_physical(&mut self, address: i64, data: &[u8]) {
+        for byte in data {
+            self.write_physical_byte(address, *byte);
+        }
+    }
+
+    pub fn read_physical_byte(&self, address: i64) -> u8 {
+        if RDRAM1.contains(&address) {
+            return self.rdram.read8(address);
+        } else if RDRAM2.contains(&address) {
+            return self.rdram.read8(address);
+        } else if RESERVED1.contains(&address) {
+            return 0;
+        } else if RDRAM_REGISTERS.contains(&address) {
+            return 0;
+        } else if RSP_DMEM.contains(&address) {
+            return 0;
+        } else if RSP_IMEM.contains(&address) {
+            return 0;
+        } else if UNKNOWN.contains(&address) {
+            return 0;
+        } else if RSP_REGISTERS.contains(&address) {
+            return 0;
+        } else if RDP_COMMAND_REGISTERS.contains(&address) {
+            return 0;
+        } else if RDP_SPAN_REGISTERS.contains(&address) {
+            return 0;
+        } else if MIPS_INTERFACE.contains(&address) {
+            return 0;
+        } else if VIDEO_INTERFACE.contains(&address) {
+            return 0;
+        } else if AUDIO_INTERFACE.contains(&address) {
+            return 0;
+        } else if PERIPHERAL_INTERFACE.contains(&address) {
+            return 0;
+        } else if RDRAM_INTERFACE.contains(&address) {
+            return 0;
+        } else if SERIAL_INTERFACE.contains(&address) {
+            return 0;
+        } else if UNUSED.contains(&address) {
+            return 0;
+        } else if CARTRIDGE_DOMAIN_2_ADDRESS_1.contains(&address) {
+            return 0;
+        } else if CARTRIDGE_DOMAIN_1_ADDRESS_1.contains(&address) {
+            return 0;
+        } else if CARTRIDGE_DOMAIN_2_ADDRESS_2.contains(&address) {
+            return 0;
+        } else if CARTRIDGE_DOMAIN_1_ADDRESS_2.contains(&address) {
+            return 0;
+        } else if PIF_ROM.contains(&address) {
+            return 0;
+        } else if PIF_RAM.contains(&address) {
+            return 0;
+        } else if RESERVED2.contains(&address) {
+            return 0;
+        } else if CARTRIDGE_DOMAIN_1_ADDRESS_3.contains(&address) {
+            return 0;
+        } else if EXTERNAL_SYSAD_DEVICE_BUS.contains(&address) {
+            return 0;
+        }
+        return 0xFF;
+    }
+
+    pub fn write_physical_byte(&mut self, address: i64, data: u8) {
+        if RDRAM1.contains(&address) {
+            self.rdram.write8(address, data);
+        } else if RDRAM2.contains(&address) {
+            self.rdram.write8(address, data);
+        } else if RESERVED1.contains(&address) {
+        } else if RDRAM_REGISTERS.contains(&address) {
+        } else if RSP_DMEM.contains(&address) {
+        } else if RSP_IMEM.contains(&address) {
+        } else if UNKNOWN.contains(&address) {
+        } else if RSP_REGISTERS.contains(&address) {
+        } else if RDP_COMMAND_REGISTERS.contains(&address) {
+        } else if RDP_SPAN_REGISTERS.contains(&address) {
+        } else if MIPS_INTERFACE.contains(&address) {
+        } else if VIDEO_INTERFACE.contains(&address) {
+        } else if AUDIO_INTERFACE.contains(&address) {
+        } else if PERIPHERAL_INTERFACE.contains(&address) {
+        } else if RDRAM_INTERFACE.contains(&address) {
+        } else if SERIAL_INTERFACE.contains(&address) {
+        } else if UNUSED.contains(&address) {
+        } else if CARTRIDGE_DOMAIN_2_ADDRESS_1.contains(&address) {
+        } else if CARTRIDGE_DOMAIN_1_ADDRESS_1.contains(&address) {
+        } else if CARTRIDGE_DOMAIN_2_ADDRESS_2.contains(&address) {
+        } else if CARTRIDGE_DOMAIN_1_ADDRESS_2.contains(&address) {
+        } else if PIF_ROM.contains(&address) {
+        } else if PIF_RAM.contains(&address) {
+        } else if RESERVED2.contains(&address) {
+        } else if CARTRIDGE_DOMAIN_1_ADDRESS_3.contains(&address) {
+        } else if EXTERNAL_SYSAD_DEVICE_BUS.contains(&address) {
+        }
     }
 }
