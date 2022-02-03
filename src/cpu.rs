@@ -92,8 +92,21 @@ impl CPU {
         }
     }
 
-    pub fn exec_opcode(&mut self, opcode: u32) {
-        self.registers.increment_program_counter(4);
+    pub fn fetch_opcode(address: i64, mmu: &MMU) -> u32 {
+        let data = mmu.read_virtual(address, 4);
+        let opcode = ((data[0] as u32) << 24) | ((data[1] as u32) << 16) | ((data[2] as u32) << 8) | ((data[3] as u32) << 8);
+        opcode
+    }
+
+    pub fn fetch_and_exec_opcode(&mut self, mmu: &mut MMU) {
+        let opcode = CPU::fetch_opcode(self.registers.get_program_counter(), mmu); // use pc to fetch the opcode
+        let next_pc = self.registers.get_next_program_counter();
+        self.registers.set_program_counter(next_pc);
+        self.registers.set_next_program_counter(next_pc.wrapping_add(4));
+        self.exec_opcode(opcode, mmu);
+    }
+
+    pub fn exec_opcode(&mut self, opcode: u32, mmu: &mut MMU) {
         let bytes = opcode.to_be_bytes();
         let inst = bytes[0] >> 2;
         match inst {
@@ -513,105 +526,88 @@ impl CPU {
             },
             // LB
             0b100000 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.lb(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.lb(rt, offset, base, mmu);
             },
             // LBU
             0b100100 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.lbu(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.lbu(rt, offset, base, mmu);
             },
             // LH
             0b100001 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.lh(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.lh(rt, offset, base, mmu);
             },
             // LHU
             0b100101 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.lhu(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.lhu(rt, offset, base, mmu);
             },
             // LW
             0b100011 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.lw(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.lw(rt, offset, base, mmu);
             },
             // LWL
             0b100010 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.lwl(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.lwl(rt, offset, base, mmu);
             },
             // LWR
             0b100110 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.lwr(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.lwr(rt, offset, base, mmu);
             },
             // SB
             0b101000 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.sb(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.sb(rt, offset, base, mmu);
             },
             // SH
             0b101001 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.sh(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.sh(rt, offset, base, mmu);
             },
             // SW
             0b101011 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.sw(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.sw(rt, offset, base, mmu);
             },
             // SWL
             0b101010 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.swl(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.swl(rt, offset, base, mmu);
             },
             // SWR
             0b101100 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.swr(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.swr(rt, offset, base, mmu);
             },
             // LLD
             0b110100 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.lld(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.lld(rt, offset, base, mmu);
             },
             // LWU
             0b100111 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.lwu(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.lwu(rt, offset, base, mmu);
             },
             // SC
             0b111000 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.sc(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.sc(rt, offset, base, mmu);
             },
             // SCD
             0b111100 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.scd(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.scd(rt, offset, base, mmu);
             },
             // SD
             0b111111 => {
-                // let (rt, offset, base) = params_rt_offset_base(opcode);
-                // self.sd(rt, offset, base, mmu);
-                todo!("Receive MMU parameter");
+                let (rt, offset, base) = params_rt_offset_base(opcode);
+                self.sd(rt, offset, base, mmu);
             },
             // J
             0b000010 => self.j(params_target(opcode)),
@@ -1205,25 +1201,25 @@ impl CPU {
 
     pub fn j(&mut self, target: i32) {
         let pc = self.registers.get_program_counter() as u64;
-        self.registers.set_program_counter(((pc & 0xFFFFFFFFE0000000) | ((target as u64) << 2)) as i64);
+        self.registers.set_next_program_counter(((pc & 0xFFFFFFFFE0000000) | ((target as u64) << 2)) as i64);
     }
 
     pub fn jal(&mut self, target: i32) {
         let pc = self.registers.get_program_counter();
         self.registers.set_by_number(31, pc.wrapping_add(8));
-        self.registers.set_program_counter((((pc as u64) & 0xFFFFFFFFE0000000) | ((target as u64) << 2)) as i64);
+        self.registers.set_next_program_counter((((pc as u64) & 0xFFFFFFFFE0000000) | ((target as u64) << 2)) as i64);
     }
 
     pub fn jalr(&mut self, rd: usize, rs: usize) {
         let s = self.registers.get_by_number(rs);
         let pc = self.registers.get_program_counter();
         self.registers.set_by_number(rd, pc.wrapping_add(8));
-        self.registers.set_program_counter(s);
+        self.registers.set_next_program_counter(s);
     }
 
     pub fn jr(&mut self, rs: usize) {
         let s = self.registers.get_by_number(rs);
-        self.registers.set_program_counter(s);
+        self.registers.set_next_program_counter(s);
     }
 
     pub fn beq(&mut self, rs: usize, rt: usize, offset: i16) {
@@ -1231,7 +1227,7 @@ impl CPU {
         let t = self.registers.get_by_number(rt);
         if s == t {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         }
     }
 
@@ -1240,7 +1236,7 @@ impl CPU {
         let t = self.registers.get_by_number(rt);
         if s == t {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         } else {
             println!("BEQL nullify current instruction");
         }
@@ -1250,7 +1246,7 @@ impl CPU {
         let s = self.registers.get_by_number(rs);
         if s >= 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         }
     }
 
@@ -1260,7 +1256,7 @@ impl CPU {
         self.registers.set_by_number(31, pc.wrapping_add(8));
         if s >= 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         }
     }
 
@@ -1270,7 +1266,7 @@ impl CPU {
         self.registers.set_by_number(31, pc.wrapping_add(8));
         if s >= 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         } else {
             println!("BGEZALL nullify current instruction");
         }
@@ -1280,7 +1276,7 @@ impl CPU {
         let s = self.registers.get_by_number(rs);
         if s >= 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         } else {
             println!("BGEZL nullify current instruction");
         }
@@ -1290,7 +1286,7 @@ impl CPU {
         let s = self.registers.get_by_number(rs);
         if s > 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         }
     }
 
@@ -1298,7 +1294,7 @@ impl CPU {
         let s = self.registers.get_by_number(rs);
         if s > 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         } else {
             println!("BGTZL nullify current instruction");
         }
@@ -1308,7 +1304,7 @@ impl CPU {
         let s = self.registers.get_by_number(rs);
         if s <= 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         }
     }
 
@@ -1316,7 +1312,7 @@ impl CPU {
         let s = self.registers.get_by_number(rs);
         if s <= 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         } else {
             println!("BGEZL nullify current instruction");
         }
@@ -1326,7 +1322,7 @@ impl CPU {
         let s = self.registers.get_by_number(rs);
         if s < 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         }
     }
 
@@ -1336,7 +1332,7 @@ impl CPU {
         self.registers.set_by_number(31, pc.wrapping_add(8));
         if s < 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         }
     }
 
@@ -1346,7 +1342,7 @@ impl CPU {
         self.registers.set_by_number(31, pc.wrapping_add(8));
         if s < 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         } else {
             println!("BLTZALL nullify current instruction");
         }
@@ -1356,7 +1352,7 @@ impl CPU {
         let s = self.registers.get_by_number(rs);
         if s < 0 {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         } else {
             println!("BLTZL nullify current instruction");
         }
@@ -1367,7 +1363,7 @@ impl CPU {
         let t = self.registers.get_by_number(rt);
         if s != t {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         }
     }
 
@@ -1376,7 +1372,7 @@ impl CPU {
         let t = self.registers.get_by_number(rt);
         if s != t {
             let offset = (((offset << 2) as u64) as i64) | ((((offset as u16) & 0x8000) as i16) as i64);
-            self.registers.increment_program_counter(offset);
+            self.registers.increment_next_program_counter(offset);
         } else {
             println!("BNEL nullify current instruction");
         }
@@ -2091,16 +2087,18 @@ mod cpu_instructions_tests {
     fn test_j() {
         let mut cpu = CPU::new();
         cpu.registers.set_program_counter(0xFF00000000000000_u64 as i64);
+        cpu.registers.set_next_program_counter(0xFF00000000000000_u64 as i64);
         cpu.j(1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF00000000000004_u64 as i64);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF00000000000004_u64 as i64);
     }
 
     #[test]
     fn test_jal() {
         let mut cpu = CPU::new();
         cpu.registers.set_program_counter(0x0F00000000000000);
+        cpu.registers.set_next_program_counter(0x0F00000000000000);
         cpu.jal(1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x0F00000000000004);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x0F00000000000004);
         assert_eq!(cpu.registers.get_by_number(31), 0x0F00000000000008);
     }
 
@@ -2111,8 +2109,9 @@ mod cpu_instructions_tests {
         let rd = 15;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_program_counter(0x0F00000000000000);
+        cpu.registers.set_next_program_counter(0x0F00000000000000);
         cpu.jalr(rd, rs);
-        assert_eq!(cpu.registers.get_program_counter(), 0x0A00000000000000);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x0A00000000000000);
         assert_eq!(cpu.registers.get_by_number(rd), 0x0F00000000000008);
     }
 
@@ -2122,7 +2121,7 @@ mod cpu_instructions_tests {
         let rs = 10;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.jr(rs);
-        assert_eq!(cpu.registers.get_program_counter(), 0x0A00000000000000);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x0A00000000000000);
     }
 
     #[test]
@@ -2132,15 +2131,15 @@ mod cpu_instructions_tests {
         let rt = 15;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_by_number(rt, 0x0A00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.beq(rs, rt, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_by_number(rt, 0x0B00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.beq(rs, rt, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2150,15 +2149,15 @@ mod cpu_instructions_tests {
         let rt = 15;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_by_number(rt, 0x0A00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.beql(rs, rt, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_by_number(rt, 0x0B00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.beql(rs, rt, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2166,14 +2165,14 @@ mod cpu_instructions_tests {
         let mut cpu = CPU::new();
         let rs = 10;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgez(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, -1);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgez(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2182,14 +2181,16 @@ mod cpu_instructions_tests {
         let rs = 10;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgezal(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
 
         cpu.registers.set_by_number(rs, -1);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgezal(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
     }
 
@@ -2199,14 +2200,16 @@ mod cpu_instructions_tests {
         let rs = 10;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgezall(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
 
         cpu.registers.set_by_number(rs, -1);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgezall(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
     }
 
@@ -2216,13 +2219,15 @@ mod cpu_instructions_tests {
         let rs = 10;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgezl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, -1);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgezl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2230,19 +2235,19 @@ mod cpu_instructions_tests {
         let mut cpu = CPU::new();
         let rs = 10;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgtz(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, -1);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgtz(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
 
         cpu.registers.set_by_number(rs, 0);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgtz(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2250,19 +2255,19 @@ mod cpu_instructions_tests {
         let mut cpu = CPU::new();
         let rs = 10;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgtzl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, -1);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgtzl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
 
         cpu.registers.set_by_number(rs, 0);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bgtzl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2270,19 +2275,19 @@ mod cpu_instructions_tests {
         let mut cpu = CPU::new();
         let rs = 10;
         cpu.registers.set_by_number(rs, 0);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.blez(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, -1);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.blez(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, 1);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.blez(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2290,19 +2295,19 @@ mod cpu_instructions_tests {
         let mut cpu = CPU::new();
         let rs = 10;
         cpu.registers.set_by_number(rs, 0);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.blezl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, -1);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.blezl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, 1);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.blezl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2310,19 +2315,19 @@ mod cpu_instructions_tests {
         let mut cpu = CPU::new();
         let rs = 10;
         cpu.registers.set_by_number(rs, -1);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltz(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, 0);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltz(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
 
         cpu.registers.set_by_number(rs, 1);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltz(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2331,20 +2336,23 @@ mod cpu_instructions_tests {
         let rs = 10;
         cpu.registers.set_by_number(rs, -1);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltzal(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
 
         cpu.registers.set_by_number(rs, 0);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltzal(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
 
         cpu.registers.set_by_number(rs, 1);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltzal(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
     }
 
@@ -2354,20 +2362,23 @@ mod cpu_instructions_tests {
         let rs = 10;
         cpu.registers.set_by_number(rs, -1);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltzall(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
 
         cpu.registers.set_by_number(rs, 0);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltzall(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
 
         cpu.registers.set_by_number(rs, 1);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltzall(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
         assert_eq!(cpu.registers.get_by_number(31), 0xFF + 8);
     }
 
@@ -2377,18 +2388,21 @@ mod cpu_instructions_tests {
         let rs = 10;
         cpu.registers.set_by_number(rs, -1);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltzl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, 0);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltzl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
 
         cpu.registers.set_by_number(rs, 1);
         cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bltzl(rs, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2398,15 +2412,15 @@ mod cpu_instructions_tests {
         let rt = 15;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_by_number(rt, 0x0B00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bne(rs, rt, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_by_number(rt, 0x0A00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bne(rs, rt, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 
     #[test]
@@ -2416,14 +2430,14 @@ mod cpu_instructions_tests {
         let rt = 15;
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_by_number(rt, 0x0B00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bnel(rs, rt, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0x103);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0x103);
 
         cpu.registers.set_by_number(rs, 0x0A00000000000000);
         cpu.registers.set_by_number(rt, 0x0A00000000000000);
-        cpu.registers.set_program_counter(0xFF);
+        cpu.registers.set_next_program_counter(0xFF);
         cpu.bnel(rs, rt, 1);
-        assert_eq!(cpu.registers.get_program_counter(), 0xFF);
+        assert_eq!(cpu.registers.get_next_program_counter(), 0xFF);
     }
 }

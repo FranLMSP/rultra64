@@ -28,6 +28,7 @@ pub const CPU_REGISTER_NAMES: [&'static str; 32] = [
 pub struct CPURegisters {
     registers: [Box<dyn Register<i64>>; 32],
     program_counter: Generic<i64>,
+    next_program_counter: Generic<i64>,
     hi: Generic<i64>,
     lo: Generic<i64>,
     load_link: bool,
@@ -71,6 +72,7 @@ impl CPURegisters {
                 Box::new(Generic(0_i64)),
             ],
             program_counter: Generic(0xBFC00000),
+            next_program_counter: Generic(0xBFC00004),
             hi: Generic(0_i64),
             lo: Generic(0_i64),
             load_link: false,
@@ -124,6 +126,19 @@ impl CPURegisters {
     pub fn increment_program_counter(&mut self, val: i64) {
         let pc: i64 = self.program_counter.get();
         self.program_counter.set(pc.wrapping_add(val));
+    }
+
+    pub fn get_next_program_counter(&self) -> i64 {
+        self.next_program_counter.get()
+    }
+
+    pub fn set_next_program_counter(&mut self, val: i64) {
+        self.next_program_counter.set(val);
+    }
+
+    pub fn increment_next_program_counter(&mut self, val: i64) {
+        let pc: i64 = self.next_program_counter.get();
+        self.next_program_counter.set(pc.wrapping_add(val));
     }
 
     pub fn set_hi(&mut self, val: i64) {
