@@ -1,6 +1,7 @@
 use std::ops::RangeInclusive;
 
 use crate::rdram::RDRAM;
+use crate::rom::ROM;
 
 pub const KUSEG: RangeInclusive<i64> = 0x00000000..=0x7FFFFFFF;
 pub const KSEG0: RangeInclusive<i64> = 0x80000000..=0x9FFFFFFF;
@@ -37,12 +38,27 @@ pub const EXTERNAL_SYSAD_DEVICE_BUS: RangeInclusive<i64>    = 0x80000000..=0xFFF
 
 pub struct MMU {
     rdram: RDRAM,
+    rom: ROM,
 }
 
 impl MMU {
     pub fn new() -> Self {
+        let args: Vec<String> = std::env::args().collect();
+        #[cfg(not(test))]
+        if args.len() < 2 {
+            eprintln!("Please, specify a ROM file");
+            std::process::exit(1);
+        }
+        let rom = match ROM::load_file(&args.get(1).unwrap_or(&"".to_string())) {
+            Ok(rom) => rom,
+            Err(err) => {
+                eprintln!("Could not read ROM: {}", err);
+                std::process::exit(1);
+            },
+        };
         Self {
             rdram: RDRAM::new(),
+            rom,
         }
     }
 
@@ -91,7 +107,7 @@ impl MMU {
         } else if RDRAM2.contains(&address) {
             return self.rdram.read8(address);
         } else if RESERVED1.contains(&address) {
-            return 0;
+            return 0xFF;
         } else if RDRAM_REGISTERS.contains(&address) {
             return 0;
         } else if RSP_DMEM.contains(&address) {
@@ -125,9 +141,9 @@ impl MMU {
         } else if CARTRIDGE_DOMAIN_1_ADDRESS_1.contains(&address) {
             return 0;
         } else if CARTRIDGE_DOMAIN_2_ADDRESS_2.contains(&address) {
-            return 0;
+            return self.rom.read(address);
         } else if CARTRIDGE_DOMAIN_1_ADDRESS_2.contains(&address) {
-            return 0;
+            return self.rom.read(address);
         } else if PIF_ROM.contains(&address) {
             return 0;
         } else if PIF_RAM.contains(&address) {
@@ -165,7 +181,9 @@ impl MMU {
         } else if CARTRIDGE_DOMAIN_2_ADDRESS_1.contains(&address) {
         } else if CARTRIDGE_DOMAIN_1_ADDRESS_1.contains(&address) {
         } else if CARTRIDGE_DOMAIN_2_ADDRESS_2.contains(&address) {
+            self.rom.write(address, data);
         } else if CARTRIDGE_DOMAIN_1_ADDRESS_2.contains(&address) {
+            self.rom.write(address, data);
         } else if PIF_ROM.contains(&address) {
         } else if PIF_RAM.contains(&address) {
         } else if RESERVED2.contains(&address) {
