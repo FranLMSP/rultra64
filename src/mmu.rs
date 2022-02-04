@@ -2,6 +2,7 @@ use std::ops::RangeInclusive;
 
 use crate::rdram::RDRAM;
 use crate::rom::ROM;
+use crate::rcp::RCP;
 
 pub const KUSEG: RangeInclusive<i64> = 0x00000000..=0x7FFFFFFF;
 pub const KSEG0: RangeInclusive<i64> = 0x80000000..=0x9FFFFFFF;
@@ -39,6 +40,7 @@ pub const EXTERNAL_SYSAD_DEVICE_BUS: RangeInclusive<i64>    = 0x80000000..=0xFFF
 pub struct MMU {
     rdram: RDRAM,
     rom: ROM,
+    rcp: RCP,
 }
 
 impl MMU {
@@ -58,6 +60,7 @@ impl MMU {
         };
         Self {
             rdram: RDRAM::new(),
+            rcp: RCP::new(),
             rom,
         }
     }
@@ -141,7 +144,7 @@ impl MMU {
         } else if MIPS_INTERFACE.contains(&address) {
             return 0;
         } else if VIDEO_INTERFACE.contains(&address) {
-            return 0;
+            return self.rcp.video_interface.get_register(address);
         } else if AUDIO_INTERFACE.contains(&address) {
             return 0;
         } else if PERIPHERAL_INTERFACE.contains(&address) {
@@ -151,7 +154,7 @@ impl MMU {
         } else if SERIAL_INTERFACE.contains(&address) {
             return 0;
         } else if UNUSED.contains(&address) {
-            return 0;
+            return 0xFF;
         } else if CARTRIDGE_DOMAIN_2_ADDRESS_1.contains(&address) {
             return 0;
         } else if CARTRIDGE_DOMAIN_1_ADDRESS_1.contains(&address) {
@@ -189,6 +192,7 @@ impl MMU {
         } else if RDP_SPAN_REGISTERS.contains(&address) {
         } else if MIPS_INTERFACE.contains(&address) {
         } else if VIDEO_INTERFACE.contains(&address) {
+            self.rcp.video_interface.set_register(address, data);
         } else if AUDIO_INTERFACE.contains(&address) {
         } else if PERIPHERAL_INTERFACE.contains(&address) {
         } else if RDRAM_INTERFACE.contains(&address) {
