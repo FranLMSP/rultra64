@@ -62,6 +62,22 @@ impl MMU {
         }
     }
 
+    pub fn new_hle() -> Self {
+        let mut mmu = Self::new();
+        // Skip IPL1 and IPL2
+        for i in 0..0x1000 {
+            let byte = mmu.read_virtual(0x10001000 + i, 1);
+            mmu.write_virtual(0x00001000 + i, vec![byte]);
+        }
+        // Skip IPL3
+        for i in 0..0x100000 {
+            let byte = mmu.read_physical_byte(0x10001000 + i);
+            mmu.write_physical_byte(0x00001000 + i, byte);
+        }
+
+        mmu
+    }
+
     pub fn convert(address: i64) -> i64 {
         if KUSEG.contains(&address) {
             return address - KUSEG.min().unwrap();

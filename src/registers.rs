@@ -79,6 +79,21 @@ impl CPURegisters {
         }
     }
 
+    pub fn new_hle() -> Self {
+        let mut registers = Self::new();
+        registers.set_by_name("t3", 0xFFFFFFFFA4000040_u64 as i64);
+        registers.set_by_name("s4", 0x0000000000000001);
+        registers.set_by_name("s6", 0x000000000000003F);
+        registers.set_by_name("sp", 0xFFFFFFFFA4001FF0_u64 as i64);
+
+        registers.set_program_counter(0x80001000);
+        registers.set_next_program_counter(0x80001000 + 4);
+        /* registers.set_program_counter(0xA4000040);
+        registers.set_next_program_counter(0xA4000040 + 4); */
+
+        registers
+    }
+
     pub fn set_load_link(&mut self, val: bool) {
         self.load_link = val;
     }
@@ -236,6 +251,16 @@ impl CP0Registers {
             error_epc: Generic(0),
             r31: Generic(0),
         }
+    }
+
+    pub fn new_hle() -> Self {
+        let mut cp0 = Self::new();
+        cp0.set_by_name_32("random", 0x0000001F);
+        cp0.set_by_name_32("status", 0x70400004);
+        cp0.set_by_name_32("PRId", 0x00000B00);
+        cp0.set_by_name_32("config", 0x0006E463);
+
+        cp0
     }
 
     fn find_index(name: &'static str) -> usize {
