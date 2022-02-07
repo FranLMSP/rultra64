@@ -70,6 +70,7 @@ impl MMU {
     }
 
     pub fn convert(address: i64) -> i64 {
+        let address = address & 0x00000000FFFFFFFF;
         if KUSEG.contains(&address) {
             return address - KUSEG.min().unwrap();
         } else if KSEG0.contains(&address) {
