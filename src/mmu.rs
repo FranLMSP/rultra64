@@ -69,8 +69,8 @@ impl MMU {
         let mut mmu = Self::new();
         // Skip IPL1 and IPL2
         for i in 0..0x1000 {
-            let byte = mmu.read_virtual(0x10001000 + i, 1);
-            mmu.write_virtual(0x00001000 + i, vec![byte]);
+            let byte = mmu.read_virtual(0xB0000000 + i, 1);
+            mmu.write_virtual(0xA4000000 + i, &byte);
         }
         // Skip IPL3
         for i in 0..0x100000 {
