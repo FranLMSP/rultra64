@@ -17,8 +17,18 @@ impl Emulator {
     pub fn new_hle() -> Self {
         Self {
             cpu: CPU::new_hle(),
-            mmu: MMU::new_hle(),
+            mmu: MMU::new(),
         }
+    }
+
+    pub fn reload(&mut self) {
+        self.cpu = CPU::new();
+        self.mmu = MMU::new();
+    }
+
+    pub fn reload_hle(&mut self) {
+        self.cpu = CPU::new_hle();
+        self.mmu = MMU::new();
     }
 
     pub fn tick(&mut self) {
@@ -27,5 +37,9 @@ impl Emulator {
 
     pub fn cpu(&self) -> &CPU {
         &self.cpu
+    }
+
+    pub fn mut_mmu(&mut self) -> &mut MMU {
+        &mut self.mmu
     }
 }

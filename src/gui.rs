@@ -24,7 +24,7 @@ pub struct EmulatorApp {
 impl Default for EmulatorApp {
     fn default() -> Self {
         Self {
-            core: Emulator::new(),
+            core: Emulator::new_hle(),
             selected_register: Register::CPU,
         }
     }
@@ -68,6 +68,16 @@ impl epi::App for EmulatorApp {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Load ROM").clicked() {
+                        if let Some(path) = rfd::FileDialog::new().pick_file() {
+                            let picked_path = path.display().to_string();
+                            if let Ok(rom) = crate::rom::ROM::new_from_filename(&picked_path) {
+                                let mut emulator_core = emulator_core.borrow_mut();
+                                emulator_core.reload_hle();
+                                emulator_core.mut_mmu().set_rom(rom);
+                                emulator_core.mut_mmu().hle_ipl();
+                                println!("ROM loaded!");
+                            }
+                        }
                     }
                     if ui.button("Quit").clicked() {
                         frame.quit();
