@@ -21,7 +21,7 @@ impl Emulator {
         }
     }
 
-    pub fn tick(&mut self, _framebuffer: &mut [u8]) {
+    pub fn tick(&mut self) {
         self.cpu.fetch_and_exec_opcode(&mut self.mmu);
     }
 

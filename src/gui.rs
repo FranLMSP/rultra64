@@ -1,15 +1,31 @@
 use eframe::{egui, epi};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::emulator::Emulator;
 
+#[derive(PartialEq, Eq)]
+enum Register {
+    CPU,
+    CP0,
+}
+
+impl Default for Register {
+    fn default() -> Self {
+        Self::CPU
+    }
+}
+
 pub struct EmulatorApp {
     core: Emulator,
+    selected_register: Register,
 }
 
 impl Default for EmulatorApp {
     fn default() -> Self {
         Self {
             core: Emulator::new(),
+            selected_register: Register::CPU,
         }
     }
 }
@@ -44,8 +60,9 @@ impl epi::App for EmulatorApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
-        let Self { core: emulator_core } = self;
+        let Self { core: emulator_core, selected_register } = self;
 
+        let emulator_core = Rc::new(RefCell::new(emulator_core));
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
@@ -59,35 +76,62 @@ impl epi::App for EmulatorApp {
             });
         });
 
-        build_cpu_registers_window(ctx, &emulator_core);
+        build_registers_window(ctx, selected_register, emulator_core.clone());
+        build_emulator_controls_window(ctx, emulator_core.clone());
     }
 }
 
-fn build_cpu_registers_window(ctx: &egui::CtxRef, emulator_core: &Emulator) {
-    egui::Window::new("CPU Registers").vscroll(true).show(ctx, |ui| {
+fn build_registers_window(ctx: &egui::CtxRef, selected_register: &mut Register, emulator_core: Rc<RefCell<&mut Emulator>>) {
+    egui::Window::new("Registers").vscroll(true).show(ctx, |ui| {
+        ui.horizontal(|ui| {
+            ui.selectable_value(selected_register, Register::CPU, "CPU");
+            ui.selectable_value(selected_register, Register::CP0, "CP0");
+        });
+        ui.separator();
+        match selected_register {
+            Register::CPU => build_cpu_registers(ui, emulator_core),
+            Register::CP0 => {ui.label("CP0 registers");},
+        };
+    });
+}
 
-        egui::SidePanel::left("left_panel")
-            // .resizable(true)
-            .default_width(10.0)
-            .show_inside(ui, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.heading("# | Name");
-                });
-                for (index, name) in crate::registers::CPU_REGISTER_NAMES.into_iter().enumerate() {
-                    ui.label(format!("r{} | {}", index, name));
-                }
-            });
-        egui::SidePanel::right("right_panel")
-            .resizable(true)
-            // .default_width(50.0)
-            .show_inside(ui, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.heading("Value");
-                });
-                for (_, name) in crate::registers::CPU_REGISTER_NAMES.into_iter().enumerate() {
-                    let val = emulator_core.cpu().registers().get_by_name(name);
-                    ui.label(format!("{}", val));
-                }
-            });
+fn build_cpu_registers(ui: &mut egui::Ui, emulator_core: Rc<RefCell<&mut Emulator>>) {
+    let emulator_core = emulator_core.borrow();
+    ui.columns(3, |cols| {
+        cols[0].label("#");
+        cols[1].label("Name");
+        cols[2].label("Value");
+    });
+    ui.separator();
+    ui.columns(3, |cols| {
+        cols[0].label("-");
+        cols[1].label("PC");
+        cols[2].label(format!("{:64X}", emulator_core.cpu().registers().get_program_counter()));
+    });
+    ui.columns(3, |cols| {
+        cols[0].label("-");
+        cols[1].label("hi");
+        cols[2].label(format!("{}", emulator_core.cpu().registers().get_hi()));
+    });
+    ui.columns(3, |cols| {
+        cols[0].label("-");
+        cols[1].label("lo");
+        cols[2].label(format!("{}", emulator_core.cpu().registers().get_lo()));
+    });
+    for (index, name) in crate::registers::CPU_REGISTER_NAMES.into_iter().enumerate() {
+        let val = emulator_core.cpu().registers().get_by_name(name);
+        ui.columns(3, |cols| {
+            cols[0].label(format!("r{}", index));
+            cols[1].label(format!("{}", name));
+            cols[2].label(format!("{}", val));
+        });
+    }
+}
+
+fn build_emulator_controls_window(ctx: &egui::CtxRef, emulator_core: Rc<RefCell<&mut Emulator>>) {
+    egui::Window::new("Controls").vscroll(true).show(ctx, |ui| {
+        if ui.button("Tick").clicked() {
+            emulator_core.borrow_mut().tick();
+        }
     });
 }
