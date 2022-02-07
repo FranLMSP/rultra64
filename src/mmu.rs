@@ -45,23 +45,10 @@ pub struct MMU {
 
 impl MMU {
     pub fn new() -> Self {
-        let args: Vec<String> = std::env::args().collect();
-        #[cfg(not(test))]
-        if args.len() < 2 {
-            eprintln!("Please, specify a ROM file");
-            std::process::exit(1);
-        }
-        let rom = match ROM::load_file(&args.get(1).unwrap_or(&"".to_string())) {
-            Ok(rom) => rom,
-            Err(err) => {
-                eprintln!("Could not read ROM: {}", err);
-                std::process::exit(1);
-            },
-        };
         Self {
             rdram: RDRAM::new(),
             rcp: RCP::new(),
-            rom,
+            rom: ROM::new(),
         }
     }
 

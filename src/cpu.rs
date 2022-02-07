@@ -99,6 +99,10 @@ impl CPU {
         }
     }
 
+    pub fn registers(&self) -> &CPURegisters {
+        &self.registers
+    }
+
     pub fn fetch_opcode(address: i64, mmu: &MMU) -> u32 {
         let data = mmu.read_virtual(address, 4);
         let opcode = ((data[0] as u32) << 24) | ((data[1] as u32) << 16) | ((data[2] as u32) << 8) | ((data[3] as u32) << 8);

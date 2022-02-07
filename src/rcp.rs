@@ -1,12 +1,13 @@
 use crate::rdram::RDRAM;
+use crate::utils::box_array;
 
 pub struct VideoInterface {
-    registers: [u8; 0x100000],
+    registers: Box<[u8; 0x100000]>,
 }
 
 impl VideoInterface {
     pub fn new() -> Self {
-        let mut registers = [0; 0x100000];
+        let mut registers = box_array![0; 0x100000];
         // Initialize VI_V_INTR 0x0440 000C: https://n64brew.dev/wiki/Video_Interface#0x0440_000C_-_VI_V_INTR
         registers[0x0440000C - 0x04400000] = 0xFF;
         registers[0x0440000B - 0x04400000] = 0x03;

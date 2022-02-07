@@ -17,7 +17,7 @@ impl ROM {
         }
     }
 
-    pub fn load_file(filename: &str) -> std::io::Result<Self> {
+    pub fn new_from_filename(filename: &str) -> std::io::Result<Self> {
         let mut file = File::open(filename)?; 
         let mut data = vec![];
         file.read_to_end(&mut data)?;

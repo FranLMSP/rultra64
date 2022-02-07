@@ -1,3 +1,5 @@
+use crate::utils::box_array;
+
 #[derive(Copy, Clone)]
 pub struct Byte {
     data: u16,
@@ -28,13 +30,13 @@ impl Byte {
 }
 
 pub struct RDRAM {
-    data: [Byte; 0x400000],
+    data: Box<[Byte; 0x400000]>,
 }
 
 impl RDRAM {
     pub fn new() -> Self {
         Self {
-            data: [Byte::new(); 0x400000],
+            data: box_array![Byte::new(); 0x400000],
         }
     }
 
