@@ -4,3 +4,6 @@ pub mod mmu;
 pub mod rom;
 pub mod rdram;
 pub mod emulator;
+pub mod rcp;
+pub mod utils;
+pub mod gui;
